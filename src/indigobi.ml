@@ -5,11 +5,16 @@ module Make (Requester : Requester.S) = struct
       Gemini.(
         GRequest.to_string req |> Requester.get_header socket |> GHeader.parse)
     in
-    if String.starts_with ~prefix:"2" header.status then (
-      let body = Requester.get_body socket in
-      Requester.close socket;
-      Ok body)
-    else failwith "todo"
+    match header.status with
+    | `Input _ -> failwith "todo: input"
+    | `Success ->
+        let body = Requester.get_body socket in
+        Requester.close socket;
+        Ok body
+    | `Redirect _ -> failwith "todo: redirection"
+    | (`TemporaryFailure _ | `PermanentFailure _ | `ClientCertificateRequired _)
+      as err ->
+        Error err
 
   let get ~url ~host =
     Ssl.init ();
@@ -40,7 +45,7 @@ module R : Requester.S = struct
 
   let get_header socket req =
     Ssl.output_string socket req;
-    let buf = Bytes.create 1050 in
+    let buf = Bytes.create 1024 in
     let (_ : int) = Ssl.read socket buf 0 @@ Bytes.length buf in
     Bytes.to_string buf
 
