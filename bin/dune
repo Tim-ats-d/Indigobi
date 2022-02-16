@@ -1,0 +1,3 @@
+(executable
+ (name indigobi)
+ (libraries indigobi))
