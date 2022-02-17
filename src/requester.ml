@@ -3,8 +3,8 @@ open Gemini
 module type S = sig
   val init : Gemini.GRequest.t -> Ssl.socket
   val close : Ssl.socket -> unit
-  val get_header : Ssl.socket -> string -> string
-  val get_body : Ssl.socket -> string
+  val fetch_header : Ssl.socket -> string -> string
+  val parse_body : Ssl.socket -> string
 end
 
 module Default : S = struct
@@ -14,14 +14,28 @@ module Default : S = struct
 
   let close = Ssl.shutdown_connection
 
-  let get_header socket req =
+  let fetch_header socket req =
     Ssl.output_string socket req;
-    let buf = Bytes.create 1029 in
-    let (_ : int) = Ssl.read socket buf 0 @@ Bytes.length buf in
-    Bytes.to_string buf
+    let buf = Buffer.create 4 in
+    for _ = 0 to 1 do
+      (* Status *)
+      Buffer.add_char buf @@ Ssl.input_char socket
+    done;
 
-  let get_body socket =
-    let buf = Bytes.create 10000 in
-    let (_ : int) = Ssl.read socket buf 0 @@ Bytes.length buf in
-    Bytes.to_string buf
+    while Buffer.sub buf (Buffer.length buf - 2) 2 <> "\r\n" do
+      Buffer.add_char buf @@ Ssl.input_char socket
+    done;
+    Buffer.contents buf
+
+  let parse_body socket =
+    let buf = Buffer.create 512 in
+    try
+      while true do
+        Buffer.add_char buf @@ Ssl.input_char socket
+      done;
+      ""
+    with e -> (
+      match e with
+      | Ssl.Read_error Error_zero_return -> Buffer.contents buf
+      | _ -> raise e)
 end

@@ -4,7 +4,7 @@ module Make (Requester : Requester.S) = struct
   let rec request req =
     let socket = Requester.init req in
     let hopt =
-      GRequest.to_string req |> Requester.get_header socket |> GHeader.parse
+      GRequest.to_string req |> Requester.fetch_header socket |> GHeader.parse
     in
     match hopt with
     | None -> Error `MalformedServerResponse
@@ -12,7 +12,7 @@ module Make (Requester : Requester.S) = struct
         match header.status with
         | `Input _ -> request { req with uri = input_line stdin }
         | `Success ->
-            let body = Requester.get_body socket in
+            let body = Requester.parse_body socket in
             Requester.close socket;
             Ok (header.meta, body)
         | `Redirect _ -> failwith "todo: redirection"
