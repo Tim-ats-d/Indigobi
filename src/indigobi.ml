@@ -40,29 +40,10 @@ module Make (Requester : Requester.S) = struct
           address
 end
 
-module R : Requester.S = struct
-  let init req =
-    let ctx = Ssl.create_context TLSv1_2 Client_context in
-    Ssl.open_connection_with_context ctx req.GRequest.addr.ai_addr
-
-  let close = Ssl.shutdown_connection
-
-  let get_header socket req =
-    Ssl.output_string socket req;
-    let buf = Bytes.create 1024 in
-    let (_ : int) = Ssl.read socket buf 0 @@ Bytes.length buf in
-    Bytes.to_string buf
-
-  let get_body socket =
-    let buf = Bytes.create 10000 in
-    let (_ : int) = Ssl.read socket buf 0 @@ Bytes.length buf in
-    Bytes.to_string buf
-end
-
 let main () =
-  let module M = Make (R) in
+  let module M = Make (Requester.Default) in
   match
-    M.get ~url:"gemini://gemini.circumlunar.space/news/"
+    M.get ~url:"gemini.circumlunar.space/x/geminispace.info/"
       ~host:"gemini.circumlunar.space"
   with
   | Ok (mime, body) -> Printf.printf "%s\n%s" mime body

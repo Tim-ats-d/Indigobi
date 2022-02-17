@@ -4,3 +4,5 @@ module type S = sig
   val get_header : Ssl.socket -> string -> string
   val get_body : Ssl.socket -> string
 end
+
+module Default : S
