@@ -9,17 +9,20 @@ module GRequest = struct
 end
 
 module GStatus = struct
-  type t =
-    [ `Input of [ `Sensitive of bool ]
-    | `Success
-    | `Redirect of [ `Temporary | `Permanent ]
-    | `TemporaryFailure of
+  type err =
+    [ `TemporaryFailure of
       string
       * [ `None | `ServerUnavailable | `CgiError | `ProxyError | `SlowDown ]
     | `PermanentFailure of
       string * [ `None | `NotFound | `Gone | `ProxyRequestRefused | `BadRequest ]
     | `ClientCertificateRequired of
       string * [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
+
+  type t =
+    [ `Input of [ `Sensitive of bool ]
+    | `Success
+    | `Redirect of [ `Temporary | `Permanent ]
+    | err ]
 
   let of_int meta = function
     | 10 -> `Input (`Sensitive true)
@@ -41,6 +44,34 @@ module GStatus = struct
     | 61 -> `ClientCertificateRequired (meta, `CertificateNotAuthorised)
     | 62 -> `ClientCertificateRequired (meta, `CertificateNotValid)
     | _ -> raise @@ Invalid_argument "GStatus.of_int"
+
+  let show =
+    let open Printf in
+    function
+    | `TemporaryFailure (m, `None) -> sprintf "Temporary failure: %s" m
+    | `TemporaryFailure (m, `ServerUnavailable) ->
+        sprintf "Temporary failure: server unavailable: %s" m
+    | `TemporaryFailure (m, `CgiError) ->
+        sprintf "Temporary failure: CGI error: %s" m
+    | `TemporaryFailure (m, `ProxyError) ->
+        sprintf "Temporary failure: proxy error: %s" m
+    | `TemporaryFailure (m, `SlowDown) ->
+        sprintf "Temporary failure: slow down: %s" m
+    | `PermanentFailure (m, `None) -> sprintf "Permanent failure: %s" m
+    | `PermanentFailure (m, `NotFound) ->
+        sprintf "Permanent failure: not found: %s" m
+    | `PermanentFailure (m, `Gone) -> sprintf "Permanent failure: gone: %s" m
+    | `PermanentFailure (m, `ProxyRequestRefused) ->
+        sprintf "Permanent failure: proxy request refused: %s" m
+    | `PermanentFailure (m, `BadRequest) ->
+        sprintf "Permanent failure: bad request: %s" m
+    | `ClientCertificateRequired (m, `None) ->
+        sprintf "Client certificate required: bad request: %s" m
+    | `ClientCertificateRequired (m, `CertificateNotAuthorised) ->
+        sprintf "Client certificate required: cerficate not authorised: %s" m
+    | `ClientCertificateRequired (m, `CertificateNotValid) ->
+        sprintf "Client certificate required: cerficate not valid: %s" m
+    | _ -> raise @@ Invalid_argument "GStatus.show"
 end
 
 module GHeader = struct

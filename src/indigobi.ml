@@ -1,15 +1,16 @@
+open Gemini
+
 module Make (Requester : Requester.S) = struct
-  let request req =
+  let rec request req =
     let socket = Requester.init req in
     let hopt =
-      Gemini.(
-        GRequest.to_string req |> Requester.get_header socket |> GHeader.parse)
+      GRequest.to_string req |> Requester.get_header socket |> GHeader.parse
     in
     match hopt with
     | None -> Error `MalformedServerResponse
     | Some header -> (
         match header.status with
-        | `Input _ -> failwith "todo: input"
+        | `Input _ -> request { req with uri = input_line stdin }
         | `Success ->
             let body = Requester.get_body socket in
             Requester.close socket;
@@ -30,7 +31,7 @@ module Make (Requester : Requester.S) = struct
             | Ok _ as ok -> ok
             | Error `NotFound -> (
                 try
-                  match Gemini.GRequest.create url ~addr with
+                  match GRequest.create url ~addr with
                   | None -> Error `MalformedLink
                   | Some r -> request r
                 with Unix.Unix_error _ -> Error `NotFound)
@@ -42,7 +43,7 @@ end
 module R : Requester.S = struct
   let init req =
     let ctx = Ssl.create_context TLSv1_2 Client_context in
-    Ssl.open_connection_with_context ctx req.Gemini.GRequest.addr.ai_addr
+    Ssl.open_connection_with_context ctx req.GRequest.addr.ai_addr
 
   let close = Ssl.shutdown_connection
 
@@ -65,4 +66,7 @@ let main () =
       ~host:"gemini.circumlunar.space"
   with
   | Ok (mime, body) -> Printf.printf "%s\n%s" mime body
-  | Error _ -> print_endline "todo: error"
+  | Error err -> (
+      match err with
+      | #Gemini.GStatus.err as e -> print_endline @@ Gemini.GStatus.show e
+      | #Err.t as e -> print_endline @@ Err.show e)
