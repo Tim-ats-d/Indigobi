@@ -48,29 +48,32 @@ module GStatus = struct
   let show =
     let open Printf in
     function
-    | `TemporaryFailure (m, `None) -> sprintf "Temporary failure: %s" m
-    | `TemporaryFailure (m, `ServerUnavailable) ->
-        sprintf "Temporary failure: server unavailable: %s" m
-    | `TemporaryFailure (m, `CgiError) ->
-        sprintf "Temporary failure: CGI error: %s" m
-    | `TemporaryFailure (m, `ProxyError) ->
-        sprintf "Temporary failure: proxy error: %s" m
-    | `TemporaryFailure (m, `SlowDown) ->
-        sprintf "Temporary failure: slow down: %s" m
-    | `PermanentFailure (m, `None) -> sprintf "Permanent failure: %s" m
-    | `PermanentFailure (m, `NotFound) ->
-        sprintf "Permanent failure: not found: %s" m
-    | `PermanentFailure (m, `Gone) -> sprintf "Permanent failure: gone: %s" m
-    | `PermanentFailure (m, `ProxyRequestRefused) ->
-        sprintf "Permanent failure: proxy request refused: %s" m
-    | `PermanentFailure (m, `BadRequest) ->
-        sprintf "Permanent failure: bad request: %s" m
-    | `ClientCertificateRequired (m, `None) ->
-        sprintf "Client certificate required: bad request: %s" m
-    | `ClientCertificateRequired (m, `CertificateNotAuthorised) ->
-        sprintf "Client certificate required: cerficate not authorised: %s" m
-    | `ClientCertificateRequired (m, `CertificateNotValid) ->
-        sprintf "Client certificate required: cerficate not valid: %s" m
+    | `TemporaryFailure (m, err) ->
+        sprintf "Temporary failure: %s%s"
+          (match err with
+          | `None -> ""
+          | `ServerUnavailable -> "server unavailable: "
+          | `CgiError -> "CGI error: "
+          | `ProxyError -> "proxy error: "
+          | `SlowDown -> "slow down: ")
+          m
+    | `PermanentFailure (m, err) ->
+        sprintf "Permanent failure: %s%s"
+          (match err with
+          | `None -> ""
+          | `NotFound -> "not found: "
+          | `Gone -> "gone: "
+          | `ProxyRequestRefused -> "proxy request refused: "
+          | `BadRequest -> "bad request: ")
+          m
+    | `ClientCertificateRequired (m, err) ->
+        sprintf "Client certificate required: %s%s"
+          (match err with
+          | `None -> ""
+          | `BadRequest -> "bad request: "
+          | `CertificateNotAuthorised -> "cerficate not authorised: "
+          | `CertificateNotValid -> "cerficate not valid: ")
+          m
     | _ -> raise @@ Invalid_argument "GStatus.show"
 end
 
