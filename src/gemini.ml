@@ -14,31 +14,32 @@ module GStatus = struct
     | `Success
     | `Redirect of [ `Temporary | `Permanent ]
     | `TemporaryFailure of
-      [ `None | `ServerUnavailable | `CgiError | `ProxyError | `SlowDown ]
+      string
+      * [ `None | `ServerUnavailable | `CgiError | `ProxyError | `SlowDown ]
     | `PermanentFailure of
-      [ `None | `NotFound | `Gone | `ProxyRequestRefused | `BadRequest ]
+      string * [ `None | `NotFound | `Gone | `ProxyRequestRefused | `BadRequest ]
     | `ClientCertificateRequired of
-      [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
+      string * [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
 
-  let of_int = function
+  let of_int meta = function
     | 10 -> `Input (`Sensitive true)
     | 11 -> `Input (`Sensitive false)
     | 20 -> `Success
     | 30 -> `Redirect `Temporary
     | 31 -> `Redirect `Permanent
-    | 40 -> `TemporaryFailure `None
-    | 41 -> `TemporaryFailure `ServerUnavailable
-    | 42 -> `TemporaryFailure `CgiError
-    | 43 -> `TemporaryFailure `ProxyError
-    | 44 -> `TemporaryFailure `SlowDown
-    | 50 -> `PermanentFailure `None
-    | 51 -> `PermanentFailure `NotFound
-    | 52 -> `PermanentFailure `Gone
-    | 53 -> `PermanentFailure `ProxyRequestRefused
-    | 59 -> `PermanentFailure `BadRequest
-    | 60 -> `ClientCertificateRequired `None
-    | 61 -> `ClientCertificateRequired `CertificateNotAuthorised
-    | 62 -> `ClientCertificateRequired `CertificateNotValid
+    | 40 -> `TemporaryFailure (meta, `None)
+    | 41 -> `TemporaryFailure (meta, `ServerUnavailable)
+    | 42 -> `TemporaryFailure (meta, `CgiError)
+    | 43 -> `TemporaryFailure (meta, `ProxyError)
+    | 44 -> `TemporaryFailure (meta, `SlowDown)
+    | 50 -> `PermanentFailure (meta, `None)
+    | 51 -> `PermanentFailure (meta, `NotFound)
+    | 52 -> `PermanentFailure (meta, `Gone)
+    | 53 -> `PermanentFailure (meta, `ProxyRequestRefused)
+    | 59 -> `PermanentFailure (meta, `BadRequest)
+    | 60 -> `ClientCertificateRequired (meta, `None)
+    | 61 -> `ClientCertificateRequired (meta, `CertificateNotAuthorised)
+    | 62 -> `ClientCertificateRequired (meta, `CertificateNotValid)
     | _ -> raise @@ Invalid_argument "GStatus.of_int"
 end
 
@@ -47,11 +48,13 @@ module GHeader = struct
 
   let parse str =
     let re = Str.regexp "\\([0-9][0-9]\\) \\(.*\\)\r\n" in
-    if Str.string_match re str 0 then (
-      let status = Str.matched_group 1 str |> int_of_string |> GStatus.of_int
-      and meta = Str.matched_group 2 str in
-      print_endline @@ Str.matched_group 1 str;
-      print_endline meta;
-      { status; meta })
-    else raise @@ Invalid_argument "GHeader.parse"
+    if Str.string_match re str 0 then
+      let meta = Str.matched_group 2 str in
+      if Bytes.(length @@ of_string meta) > 1024 then None
+      else
+        let status =
+          Str.matched_group 1 str |> int_of_string |> GStatus.of_int meta
+        in
+        Some { status; meta }
+    else None
 end

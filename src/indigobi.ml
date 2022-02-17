@@ -1,20 +1,23 @@
 module Make (Requester : Requester.S) = struct
   let request req =
     let socket = Requester.init req in
-    let header =
+    let hopt =
       Gemini.(
         GRequest.to_string req |> Requester.get_header socket |> GHeader.parse)
     in
-    match header.status with
-    | `Input _ -> failwith "todo: input"
-    | `Success ->
-        let body = Requester.get_body socket in
-        Requester.close socket;
-        Ok body
-    | `Redirect _ -> failwith "todo: redirection"
-    | (`TemporaryFailure _ | `PermanentFailure _ | `ClientCertificateRequired _)
-      as err ->
-        Error err
+    match hopt with
+    | None -> Error `MalformedServerResponse
+    | Some header -> (
+        match header.status with
+        | `Input _ -> failwith "todo: input"
+        | `Success ->
+            let body = Requester.get_body socket in
+            Requester.close socket;
+            Ok (header.meta, body)
+        | `Redirect _ -> failwith "todo: redirection"
+        | ( `TemporaryFailure _ | `PermanentFailure _
+          | `ClientCertificateRequired _ ) as err ->
+            Error err)
 
   let get ~url ~host =
     Ssl.init ();
@@ -61,5 +64,5 @@ let main () =
     M.get ~url:"gemini://gemini.circumlunar.space/news/"
       ~host:"gemini.circumlunar.space"
   with
-  | Ok body -> print_endline body
+  | Ok (mime, body) -> Printf.printf "%s\n%s" mime body
   | Error _ -> print_endline "todo: error"

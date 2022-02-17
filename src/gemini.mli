@@ -11,17 +11,18 @@ module GStatus : sig
     | `Success
     | `Redirect of [ `Temporary | `Permanent ]
     | `TemporaryFailure of
-      [ `None | `ServerUnavailable | `CgiError | `ProxyError | `SlowDown ]
+      string
+      * [ `None | `ServerUnavailable | `CgiError | `ProxyError | `SlowDown ]
     | `PermanentFailure of
-      [ `None | `NotFound | `Gone | `ProxyRequestRefused | `BadRequest ]
+      string * [ `None | `NotFound | `Gone | `ProxyRequestRefused | `BadRequest ]
     | `ClientCertificateRequired of
-      [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
+      string * [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
 
-  val of_int : int -> t
+  val of_int : string -> int -> t
 end
 
 module GHeader : sig
   type t = { status : GStatus.t; meta : string }
 
-  val parse : string -> t
+  val parse : string -> t option
 end

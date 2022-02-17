@@ -1,1 +1,2 @@
-type t = [ `UnknownHostOrServiceName | `MalformedLink | `NotFound ]
+type t =
+  [ `MalformedLink | `MalformedServerResponse | `NotFound | `UnknownHostOrServiceName ]
