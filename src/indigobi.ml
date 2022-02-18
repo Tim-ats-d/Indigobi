@@ -1,6 +1,6 @@
 open Gemini
 
-module Make (Requester : Requester.S) = struct
+module Make (Input : Input.S) (Requester : Requester.S) = struct
   let rec request req =
     let socket = Requester.init req in
     let hopt =
@@ -10,7 +10,9 @@ module Make (Requester : Requester.S) = struct
     | None -> Error `MalformedServerResponse
     | Some header -> (
         match header.status with
-        | `Input _ -> request { req with uri = input_line stdin }
+        | `Input (`Sensitive s) ->
+            let input = if s then Input.sensitive () else Input.input () in
+            request @@ GRequest.attach_input req input
         | `Success ->
             let body = Requester.parse_body socket in
             Requester.close socket;
@@ -41,10 +43,9 @@ module Make (Requester : Requester.S) = struct
 end
 
 let main () =
-  let module M = Make (Requester.Default) in
+  let module M = Make (Input.Default) (Requester.Default) in
   match
-    M.get ~url:"gemini://gemini.circumlunar.space/news/"
-      ~host:"gemini.circumlunar.space"
+    M.get ~url:"gemini://geminispace.info/search" ~host:"geminispace.info"
   with
   | Ok (mime, body) -> Printf.printf "%s\n%s" mime body
   | Error err -> (

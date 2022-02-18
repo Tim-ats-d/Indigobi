@@ -33,9 +33,6 @@ module Default : S = struct
       while true do
         Buffer.add_char buf @@ Ssl.input_char socket
       done;
-      ""
-    with e -> (
-      match e with
-      | Ssl.Read_error Error_zero_return -> Buffer.contents buf
-      | _ -> raise e)
+      assert false
+    with Ssl.Read_error Error_zero_return -> Buffer.contents buf
 end
