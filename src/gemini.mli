@@ -17,7 +17,7 @@ module GStatus : sig
       string * [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
 
   type t =
-    [ `Input of [ `Sensitive of bool ]
+    [ `Input of string * [ `Sensitive of bool ]
     | `Success
     | `Redirect of [ `Temporary | `Permanent ]
     | err ]

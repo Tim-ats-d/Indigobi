@@ -24,14 +24,14 @@ module GStatus = struct
       string * [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
 
   type t =
-    [ `Input of [ `Sensitive of bool ]
+    [ `Input of string * [ `Sensitive of bool ]
     | `Success
     | `Redirect of [ `Temporary | `Permanent ]
     | err ]
 
   let of_int meta = function
-    | 10 -> `Input (`Sensitive true)
-    | 11 -> `Input (`Sensitive false)
+    | 10 -> `Input (meta, `Sensitive true)
+    | 11 -> `Input (meta, `Sensitive false)
     | 20 -> `Success
     | 30 -> `Redirect `Temporary
     | 31 -> `Redirect `Permanent

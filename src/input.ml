@@ -1,12 +1,12 @@
 module type S = sig
-  val input : unit -> string
-  val sensitive : unit -> string
+  val input : string -> string
+  val sensitive : string -> string
   val normalize : string -> string
 end
 
 module Default : S = struct
-  let rec input () =
-    print_string "INPUT: ";
+  let rec input meta =
+    Printf.printf "%s: " meta;
     flush stdout;
     input_line stdin |> normalize
 
@@ -21,5 +21,5 @@ module Default : S = struct
     in
     String.fold_left convert_char "" input_str
 
-  let sensitive = input
+  let sensitive meta = input meta
 end

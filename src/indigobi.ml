@@ -10,8 +10,8 @@ module Make (Input : Input.S) (Requester : Requester.S) = struct
     | None -> Error `MalformedServerResponse
     | Some header -> (
         match header.status with
-        | `Input (`Sensitive s) ->
-            let input = if s then Input.sensitive () else Input.input () in
+        | `Input (meta, `Sensitive s) ->
+            let input = if s then Input.sensitive meta else Input.input meta in
             request @@ GRequest.attach_input req input
         | `Success ->
             let body = Requester.parse_body socket in
