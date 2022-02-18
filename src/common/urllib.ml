@@ -12,27 +12,27 @@ let encode input_str =
   String.fold_left convert_char "" input_str
 
 let parse url host =
-  let scheme_regexp = Str.regexp "\\(.+\\)://\\(.+\\)"
-  and domain_regexp = Str.regexp "\\([^/\\?]*\\)\\(/[^?]*\\)?\\(\\?\\(.+\\)\\)?"
-  and path_regexpr = Str.regexp ".*/\\(.*\\)"
-  and query_regexp = Str.regexp ".*\\?\\(.+\\)" in
+  let scheme_re = Str.regexp "\\(.+\\)://\\(.+\\)"
+  and domain_re = Str.regexp "\\([^/\\?]*\\)\\(/[^?]*\\)?\\(\\?\\(.+\\)\\)?"
+  and path_re = Str.regexp ".*/\\(.*\\)"
+  and query_re = Str.regexp ".*\\?\\(.+\\)" in
   let scheme =
-    if Str.string_match scheme_regexp url 0 then
-      Str.replace_first scheme_regexp "\\1" url
+    if Str.string_match scheme_re url 0 then
+      Str.replace_first scheme_re "\\1" url
     else "gemini"
   and right_part =
-    if Str.string_match scheme_regexp url 0 then
-      Str.replace_first scheme_regexp "\\2" url
+    if Str.string_match scheme_re url 0 then
+      Str.replace_first scheme_re "\\2" url
     else url
   in
-  let domain = Str.replace_first domain_regexp "\\1" right_part
+  let domain = Str.replace_first domain_re "\\1" right_part
   and path =
-    if Str.string_match path_regexpr right_part 0 then
-      Str.replace_first domain_regexp "\\2" right_part
+    if Str.string_match path_re right_part 0 then
+      Str.replace_first domain_re "\\2" right_part
     else "/"
   and query =
-    if Str.string_match query_regexp right_part 0 then
-      Str.replace_first domain_regexp "\\4" right_part |> encode
+    if Str.string_match query_re right_part 0 then
+      Str.replace_first domain_re "\\4" right_part |> encode
     else ""
   in
   { scheme; domain = (if domain = "" then host else domain); path; query }

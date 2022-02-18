@@ -7,7 +7,7 @@ module Default : S = struct
   let input meta =
     Printf.printf "%s: " meta;
     flush stdout;
-    input_line stdin |> Urllib.encode
+    Common.Urllib.encode @@ input_line stdin
 
   let sensitive meta = input meta
 end

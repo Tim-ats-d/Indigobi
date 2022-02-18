@@ -1,10 +1,11 @@
-open Gemini
+open Component
+module G = Gemini
 
 module Make (Input : Input.S) (Requester : Requester.S) = struct
   let rec request req =
     let socket = Requester.init req in
     let hopt =
-      GRequest.to_string req |> Requester.fetch_header socket |> GHeader.parse
+      G.Request.to_string req |> Requester.fetch_header socket |> G.Header.parse
     in
     match hopt with
     | None -> Error `MalformedServerResponse
@@ -12,7 +13,7 @@ module Make (Input : Input.S) (Requester : Requester.S) = struct
         match header.status with
         | `Input (meta, `Sensitive s) ->
             let input = if s then Input.sensitive meta else Input.input meta in
-            request @@ GRequest.attach_input req input
+            request @@ G.Request.attach_input req input
         | `Success ->
             let body = Requester.parse_body socket in
             Requester.close socket;
@@ -33,7 +34,7 @@ module Make (Input : Input.S) (Requester : Requester.S) = struct
             | Ok _ as ok -> ok
             | Error `NotFound -> (
                 try
-                  match GRequest.create url ~addr with
+                  match G.Request.create url ~addr with
                   | None -> Error `MalformedLink
                   | Some r -> request r
                 with Unix.Unix_error _ -> Error `NotFound)
@@ -44,11 +45,10 @@ end
 
 let main () =
   let module M = Make (Input.Default) (Requester.Default) in
-  match
+  let res =
     M.get ~url:"gemini://geminispace.info/search" ~host:"geminispace.info"
-  with
+  in
+  match res with
   | Ok (mime, body) -> Printf.printf "%s\n%s" mime body
-  | Error err -> (
-      match err with
-      | #Gemini.GStatus.err as e -> print_endline @@ Gemini.GStatus.show e
-      | #Err.t as e -> print_endline @@ Err.show e)
+  | Error (#G.Status.err as e) -> print_endline @@ G.Status.show e
+  | Error (#Common.Err.t as e) -> print_endline @@ Common.Err.show e

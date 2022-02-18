@@ -1,7 +1,7 @@
-open Gemini
+module G = Gemini
 
 module type S = sig
-  val init : Gemini.GRequest.t -> Ssl.socket
+  val init : G.Request.t -> Ssl.socket
   val close : Ssl.socket -> unit
   val fetch_header : Ssl.socket -> string -> string
   val parse_body : Ssl.socket -> string
@@ -10,7 +10,7 @@ end
 module Default : S = struct
   let init req =
     let ctx = Ssl.create_context TLSv1_2 Client_context in
-    Ssl.open_connection_with_context ctx req.GRequest.addr.ai_addr
+    Ssl.open_connection_with_context ctx req.G.Request.addr.ai_addr
 
   let close = Ssl.shutdown_connection
 
