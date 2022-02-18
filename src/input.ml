@@ -9,5 +9,5 @@ module Default : S = struct
     flush stdout;
     input_line stdin
 
-  let sensitive = input (* TODO *)
+  let sensitive = input
 end
