@@ -43,7 +43,7 @@ end
 let main () =
   let module M = Make (Requester.Default) in
   match
-    M.get ~url:"gemini.circumlunar.space/x/geminispace.info/"
+    M.get ~url:"gemini://gemini.circumlunar.space/news/"
       ~host:"gemini.circumlunar.space"
   with
   | Ok (mime, body) -> Printf.printf "%s\n%s" mime body
