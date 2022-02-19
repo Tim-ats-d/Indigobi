@@ -33,9 +33,9 @@ let parse str =
             else if S.starts_with ~prefix:"* " x then ListItem x
             else if S.get x 0 = '>' then Quote x
             else
-              let post = S.sub x 2 (S.length x - 2) in
+              let post = S.trim @@ S.sub x 2 (S.length x - 2) in
               if S.starts_with ~prefix:"=>" x && post <> "" then
-                match Str.(split (regexp "[ \t]") @@ S.trim post) with
+                match Str.(bounded_split (regexp "[ \t]+") post 2) with
                 | [ url ] -> Link { url; name = None }
                 | [ url; name ] -> Link { url; name = Some name }
                 | _ -> assert false

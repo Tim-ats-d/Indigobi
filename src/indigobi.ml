@@ -52,3 +52,7 @@ let main () =
   | Ok (mime, body) -> Printf.printf "%s\n%s" mime body
   | Error (#G.Status.err as e) -> print_endline @@ G.Status.show e
   | Error (#Common.Err.t as e) -> print_endline @@ Common.Err.show e
+
+module Component = Component
+module Common = Common
+module Gemini = Gemini
