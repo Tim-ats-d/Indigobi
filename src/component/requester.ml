@@ -22,7 +22,7 @@ module Default : S = struct
       Buffer.add_char buf @@ Ssl.input_char socket
     done;
 
-    while Buffer.sub buf (Buffer.length buf - 2) 2 <> "\r\n" do
+    while Buffer.(sub buf (length buf - 2) 2) <> "\r\n" do
       Buffer.add_char buf @@ Ssl.input_char socket
     done;
     Buffer.contents buf
