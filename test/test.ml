@@ -1,1 +1,3 @@
-let () = Gtext.pass ()
+let () =
+  Gtext.pass ();
+  Urllib.pass ()

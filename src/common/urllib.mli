@@ -1,4 +1,4 @@
-type t
+type t = { scheme : string; domain : string; path : string; query : string }
 
 val encode : string -> string
 val parse : string -> string -> t
