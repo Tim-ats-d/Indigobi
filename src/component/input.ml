@@ -6,13 +6,13 @@ end
 let purple = LTerm_style.rgb 156 75 191
 
 let make_prompt meta =
-  let msg = Printf.sprintf "%s: " meta in
+  let msg = meta ^ " " in
   LTerm_text.eval [ B_fg purple; S msg; E_fg ]
 
 module Default : S = struct
   let input meta =
     make_prompt meta |> LTerm.prints |> Lwt_main.run;
-    Common.Urllib.encode @@ input_line stdin
+    try Common.Urllib.encode @@ input_line stdin with End_of_file -> exit 1
 
   class hidden_read ~prompt term =
     object (self)
@@ -33,7 +33,7 @@ module Default : S = struct
       LTerm.flush term >>= fun () ->
       let prompt = make_prompt meta in
       (new hidden_read ~prompt term)#run >>= fun input ->
-      Lwt.return @@ Zed_string.to_utf8 input
+      Zed_string.to_utf8 input |> Common.Urllib.encode |> Lwt.return
     in
     Lwt_main.run @@ launch ()
 end
