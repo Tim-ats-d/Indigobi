@@ -12,6 +12,6 @@ module Default : S = struct
       | `GeminiErr g -> "Gemini error: " ^ Gemini.Status.show g
       | `CommonErr err -> "Error: " ^ Common.Err.show err
     in
-    let color_msg = (LTerm_text.eval [ B_fg red; S msg; E_fg ]) in
+    let color_msg = LTerm_text.eval [ B_fg red; S msg; E_fg ] in
     Lwt_main.run @@ LTerm.printls color_msg
 end
