@@ -6,12 +6,8 @@ module type S = sig
 end
 
 module Make (Cfg : Config.S) = struct
-  let make_prompt meta =
-    let msg = meta ^ " " in
-    LTerm_text.eval [ B_fg Cfg.prompt; S msg; E_fg ]
-
   let input meta =
-    make_prompt meta |> LTerm.prints |> Lwt_main.run;
+    Cfg.make_prompt meta |> LTerm_text.eval |> LTerm.prints |> Lwt_main.run;
     try Urllib.encode @@ input_line stdin with End_of_file -> exit 1
 
   class hidden_read ~prompt term =
@@ -31,7 +27,7 @@ module Make (Cfg : Config.S) = struct
       LTerm_inputrc.load () >>= fun () ->
       Lazy.force LTerm.stdout >>= fun term ->
       LTerm.flush term >>= fun () ->
-      let prompt = make_prompt meta in
+      let prompt = LTerm_text.eval @@ Cfg.make_prompt meta in
       (new hidden_read ~prompt term)#run >>= fun input ->
       Zed_string.to_utf8 input |> Urllib.encode |> Lwt.return
     in
