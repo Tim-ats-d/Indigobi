@@ -13,5 +13,5 @@ module Default : S = struct
       | `CommonErr err -> "Error: " ^ Common.Err.show err
     in
     let color_msg = LTerm_text.eval [ B_fg red; S msg; E_fg ] in
-    Lwt_main.run @@ LTerm.printls color_msg
+    Lwt_main.run @@ LTerm.eprintls color_msg
 end
