@@ -13,8 +13,8 @@ type t =
   | err ]
 
 let of_int meta = function
-  | 10 -> `Input (meta, `Sensitive true)
-  | 11 -> `Input (meta, `Sensitive false)
+  | 10 -> `Input (meta, `Sensitive false)
+  | 11 -> `Input (meta, `Sensitive true)
   | 20 -> `Success
   | 30 -> `Redirect `Temporary
   | 31 -> `Redirect `Permanent
