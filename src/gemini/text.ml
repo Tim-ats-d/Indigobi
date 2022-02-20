@@ -4,11 +4,17 @@ and line =
   | Text of string
   | Link of { url : string; name : string option }
   | Preformat of preformat
-  | Heading of [ `H1 | `H2 | `H3 ]
+  | Heading of [ `H1 | `H2 | `H3 ] * string
   | ListItem of string
   | Quote of string
 
 and preformat = { alt : string option; text : string }
+
+let h1 = Str.regexp "#[ \t]*\\([^#].+\\)"
+and h2 = Str.regexp "##[ \t]*\\([^#].+\\)"
+and h3 = Str.regexp "###[ \t]*\\([^#].+\\)"
+and quote = Str.regexp ">[ \t]*\\(.+\\)"
+and item = Str.regexp "* \\(.*\\)"
 
 let parse str =
   let rec loop acc is_preformat pf = function
@@ -24,14 +30,20 @@ let parse str =
             let alt = if alt_str = "" then None else Some alt_str in
             loop acc (not is_preformat) { pf with alt } xs
         else if is_preformat then
-          loop acc is_preformat { pf with text = pf.text ^ x } xs
+          loop acc is_preformat { pf with text = pf.text ^ x ^ "\n" } xs
         else
           let x' =
-            if S.get x 0 = '#' then Heading `H1
-            else if S.starts_with ~prefix:"##" x then Heading `H2
-            else if S.starts_with ~prefix:"###" x then Heading `H3
-            else if S.starts_with ~prefix:"* " x then ListItem x
-            else if S.get x 0 = '>' then Quote x
+            if x = "" then Text ""
+            else if Str.string_match h1 x 0 then
+              Heading (`H1, Str.matched_group 1 x)
+            else if Str.string_match h2 x 0 then
+              Heading (`H2, Str.matched_group 1 x)
+            else if Str.string_match h3 x 0 then
+              Heading (`H3, Str.matched_group 1 x)
+            else if Str.string_match item x 0 then
+              ListItem (Str.matched_group 1 x)
+            else if Str.string_match quote x 0 then
+              Quote (Str.matched_group 1 x)
             else
               let post = S.trim @@ S.sub x 2 (S.length x - 2) in
               if S.starts_with ~prefix:"=>" x && post <> "" then

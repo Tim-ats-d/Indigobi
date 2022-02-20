@@ -34,10 +34,10 @@ let of_int meta = function
   | _ -> raise @@ Invalid_argument "GStatus.of_int"
 
 let show =
-  let open Printf in
+  let fmt = Printf.sprintf in
   function
   | `TemporaryFailure (m, err) ->
-      sprintf "Temporary failure: %s%s"
+      fmt "temporary failure: %s%s"
         (match err with
         | `None -> ""
         | `ServerUnavailable -> "server unavailable: "
@@ -46,7 +46,7 @@ let show =
         | `SlowDown -> "slow down: ")
         m
   | `PermanentFailure (m, err) ->
-      sprintf "Permanent failure: %s%s"
+      fmt "permanent failure: %s%s"
         (match err with
         | `None -> ""
         | `NotFound -> "not found: "
@@ -55,11 +55,10 @@ let show =
         | `BadRequest -> "bad request: ")
         m
   | `ClientCertificateRequired (m, err) ->
-      sprintf "Client certificate required: %s%s"
+      fmt "client certificate required: %s%s"
         (match err with
         | `None -> ""
         | `BadRequest -> "bad request: "
         | `CertificateNotAuthorised -> "cerficate not authorised: "
         | `CertificateNotValid -> "cerficate not valid: ")
         m
-  | _ -> raise @@ Invalid_argument "GStatus.show"

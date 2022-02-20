@@ -46,12 +46,12 @@ end
 let main () =
   let module M = Make (Input.Default) (Requester.Default) in
   let res =
-    M.get ~url:"gemini://geminispace.info/search" ~host:"geminispace.info"
+    M.get ~url:"gemini://geminispace.info/searchh" ~host:"geminispace.info"
   in
   match res with
   | Ok (mime, body) -> Printf.printf "%s\n%s" mime body
-  | Error (#G.Status.err as e) -> print_endline @@ G.Status.show e
-  | Error (#Common.Err.t as e) -> print_endline @@ Common.Err.show e
+  | Error (#G.Status.err as e) -> Cmdline_ui.Default.print_err @@ `GeminiErr e
+  | Error (#Common.Err.t as e) -> Cmdline_ui.Default.print_err @@ `CommonErr e
 
 module Component = Component
 module Common = Common
