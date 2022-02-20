@@ -3,4 +3,4 @@ module type S = sig
     [< `CommonErr of Common.Err.t | `GeminiErr of Gemini.Status.err ] -> unit
 end
 
-module Default : S
+module Make : functor (Cfg : Common.Config.S) -> S

@@ -3,4 +3,4 @@ module type S = sig
   val sensitive : string -> string
 end
 
-module Default : S
+module Make : functor (Cfg : Common.Config.S) -> S

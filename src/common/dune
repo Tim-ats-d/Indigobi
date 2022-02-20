@@ -1,3 +1,4 @@
 (library
  (name common)
- (libraries str))
+ (modules_without_implementation config)
+ (libraries lambda-term str))
