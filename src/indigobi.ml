@@ -7,16 +7,20 @@ module Color = struct
 
   let default = default
   let blue = rgb 88 166 255
+  let dark_blue = rgb 0 44 170
+  let dark_green = rgb 9 121 49
   let dark_grey = rgb 48 54 61
+  let dark_red = rgb 177 13 13
   let light_grey = rgb 139 148 158
+  let light_red = rgb 211 60 46
   let purple = rgb 156 75 191
-  let red = rgb 177 13 13
+  let yellow = rgb 249 214 74
 end
 
 module Cfg : Common.Config.S = struct
   open LTerm_text
 
-  let error_clr = Color.red
+  let error_clr = Color.dark_red
 
   let make_prompt meta =
     let msg = meta ^ " " in
@@ -33,19 +37,23 @@ module Cfg : Common.Config.S = struct
       S url;
       E_fg;
       E_underline;
-      E_bold;
       S " ";
       B_fg Color.default;
       S (Option.value name ~default:"");
       E_fg;
+      E_bold;
     ]
 
-  let fmt_preformat text _alt = [ B_reverse true; S text; E_reverse ]
-  let fmt_h1 h = [ B_bold true; B_fg Color.default; S "# "; S h; E_fg; E_bold ]
-  let fmt_h2 h = [ B_bold true; B_fg Color.default; S "## "; S h; E_fg; E_bold ]
+  let fmt_preformat text _alt = [ B_fg Color.yellow; S text; E_fg ]
+
+  let fmt_h1 h =
+    [ B_bold true; B_fg Color.light_red; S "# "; S h; E_fg; E_bold ]
+
+  let fmt_h2 h =
+    [ B_bold true; B_fg Color.dark_green; S "## "; S h; E_fg; E_bold ]
 
   let fmt_h3 h =
-    [ B_bold true; B_fg Color.default; S "### "; S h; E_fg; E_bold ]
+    [ B_bold true; B_fg Color.dark_blue; S "### "; S h; E_fg; E_bold ]
 
   let fmt_list_item item =
     [
