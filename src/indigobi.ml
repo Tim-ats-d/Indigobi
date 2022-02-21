@@ -68,4 +68,4 @@ let main () =
   let open Component in
   let module Back = Backend.Make (Input.Make (Cfg)) (Requester.Default) in
   let module Front = Frontend.Make (Cli.Make (Cfg)) (Back) in
-  Front.get ~url:"gemini://geminispace.info/search" ~host:"geminispace.info"
+  Front.get ~url:"gemini://geminispace.info/" ~host:"geminispace.info"
