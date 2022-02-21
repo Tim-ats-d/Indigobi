@@ -4,7 +4,7 @@ module type S = sig
   val get :
     url:string ->
     host:string ->
-    (string * string, [> Common.Err.t | G.Status.err ]) result
+    (Mime.t * string, [> Common.Err.t | G.Status.err ]) result
 end
 
 module Make (Input : Input.S) (Requester : Requester.S) : S = struct
@@ -23,7 +23,7 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
         | `Success ->
             let body = Requester.parse_body socket in
             Requester.close socket;
-            Ok (header.meta, body)
+            Ok (Mime.parse header.meta, body)
         | `Redirect _ -> failwith "todo: redirection"
         | ( `TemporaryFailure _ | `PermanentFailure _
           | `ClientCertificateRequired _ ) as err ->

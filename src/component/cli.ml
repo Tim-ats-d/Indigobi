@@ -1,5 +1,7 @@
 module type S = sig
+  val print_text : string -> string -> unit
   val print_gemini : Gemini.Text.t -> unit
+  val print_other : string -> string -> unit
 
   val print_err :
     [< `GeminiErr of Gemini.Status.err | `CommonErr of Common.Err.t ] -> unit
@@ -8,6 +10,8 @@ end
 open Common
 
 module Make (Cfg : Config.S) : S = struct
+  let print_text _ = print_endline
+
   let rec print_gemini lines =
     Lwt_main.run
     @@ Lwt_list.iter_p
@@ -25,6 +29,8 @@ module Make (Cfg : Config.S) : S = struct
     | Heading (`H3, h) -> Cfg.fmt_h3 h
     | ListItem i -> Cfg.fmt_list_item i
     | Quote q -> Cfg.fmt_quote q
+
+  let print_other _ _ = failwith "todo: non-text format"
 
   let print_err err =
     let msg =

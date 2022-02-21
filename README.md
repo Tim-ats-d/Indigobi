@@ -4,8 +4,7 @@ A WIP Gemini client written in OCaml.
 
 ### Todo
 
-- A CLI and a TUI (with `lambda-term` ?)
-- Lang parameter in section meta of header
-- Pretty print `text/gemini` MIME type
+- TUI with `lambda-term`
+- Lang and charset attributes in MIME section of header
+- Handle non-text format
 - History (with a zipper ?)
-- Handling other `text/*` MIME type
