@@ -45,5 +45,8 @@ module Make (Cfg : Config.S) : S = struct
       | `CommonErr err -> "Error: " ^ Common.Err.show err
     in
     let color_msg = LTerm_text.eval [ B_fg Cfg.error_clr; S msg; E_fg ] in
-    Lwt_main.run @@ LTerm.eprintls color_msg
+    Lwt_main.run
+      Lwt.(
+        Lazy.force LTerm.stderr >>= fun term ->
+        LTerm.fprintls term color_msg >>= fun () -> LTerm.flush term)
 end
