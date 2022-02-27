@@ -22,9 +22,8 @@ module Make (Cfg : Config.S) = struct
     end
 
   let sensitive meta =
+    let ( >>= ) = Lwt.( >>= ) in
     let launch () =
-      let ( >>= ) = Lwt.( >>= ) in
-      LTerm_inputrc.load () >>= fun () ->
       Lazy.force LTerm.stdout >>= fun term ->
       LTerm.flush term >>= fun () ->
       let prompt = LTerm_text.eval @@ Cfg.make_prompt meta in

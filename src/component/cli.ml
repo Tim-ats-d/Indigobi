@@ -9,32 +9,20 @@ end
 
 open Common
 
-module Make (Cfg : Config.S) : S = struct
+module Make (Cfg : Config.S with type t := Gemini.Text.line) : S = struct
   let print_text _ = print_endline
 
-  let rec print_gemini lines =
+  let print_gemini lines =
     let term = Lazy.force LTerm.stdout in
     Lwt_main.run
     @@ Lwt_list.iter_s
          Lwt.(
            fun line ->
              term >>= fun term ->
-             (try markup_of_line line |> LTerm_text.eval |> LTerm.fprintls term
+             (try Cfg.to_markup line |> LTerm_text.eval |> LTerm.fprintls term
               with Zed_string.Invalid (_, text) -> LTerm.printl text)
              >>= fun () -> LTerm.flush term)
          lines
-
-  and markup_of_line =
-    let open Gemini.Text in
-    function
-    | Text t -> Cfg.fmt_text t
-    | Link { url; name } -> Cfg.fmt_link ~url ~name
-    | Preformat { text; alt } -> Cfg.fmt_preformat text alt
-    | Heading (`H1, h) -> Cfg.fmt_h1 h
-    | Heading (`H2, h) -> Cfg.fmt_h2 h
-    | Heading (`H3, h) -> Cfg.fmt_h3 h
-    | ListItem i -> Cfg.fmt_list_item i
-    | Quote q -> Cfg.fmt_quote q
 
   let print_other _ _ = failwith "todo: non-text format"
 
