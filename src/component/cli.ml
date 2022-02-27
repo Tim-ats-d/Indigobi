@@ -15,7 +15,9 @@ module Make (Cfg : Config.S) : S = struct
   let rec print_gemini lines =
     Lwt_main.run
     @@ Lwt_list.iter_p
-         (fun line -> markup_of_line line |> LTerm_text.eval |> LTerm.printls)
+         (fun line ->
+           try markup_of_line line |> LTerm_text.eval |> LTerm.printls
+           with Zed_string.Invalid (_, text) -> LTerm.printl text)
          lines
 
   and markup_of_line =
