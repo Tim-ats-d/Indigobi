@@ -13,11 +13,15 @@ module Make (Cfg : Config.S) : S = struct
   let print_text _ = print_endline
 
   let rec print_gemini lines =
+    let term = Lazy.force LTerm.stdout in
     Lwt_main.run
-    @@ Lwt_list.iter_p
-         (fun line ->
-           try markup_of_line line |> LTerm_text.eval |> LTerm.printls
-           with Zed_string.Invalid (_, text) -> LTerm.printl text)
+    @@ Lwt_list.iter_s
+         Lwt.(
+           fun line ->
+             term >>= fun term ->
+             (try markup_of_line line |> LTerm_text.eval |> LTerm.fprintls term
+              with Zed_string.Invalid (_, text) -> LTerm.printl text)
+             >>= fun () -> LTerm.flush term)
          lines
 
   and markup_of_line =

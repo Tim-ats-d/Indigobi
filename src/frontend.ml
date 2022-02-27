@@ -4,7 +4,7 @@ module type S = sig
   val get : url:string -> host:string -> unit
 end
 
-module Make (Cli : Cli.S) (Backend : Backend.S) = struct
+module Make (Cli : Cli.S) (Backend : Backend.S) : S = struct
   let get ~url ~host =
     match Backend.get ~url ~host with
     | Ok ({ Mime.media_type = `Gemini; _ }, body) ->

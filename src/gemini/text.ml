@@ -17,10 +17,10 @@ and quote = Str.regexp ">[ \t]*\\(.+\\)"
 and item = Str.regexp "* \\(.*\\)"
 
 let parse str =
+  let module S = String in
   let rec loop acc is_preformat pf = function
     | [] -> List.rev acc
     | x :: xs ->
-        let module S = String in
         if S.starts_with ~prefix:"```" x then
           if is_preformat then
             loop (Preformat pf :: acc) (not is_preformat)
