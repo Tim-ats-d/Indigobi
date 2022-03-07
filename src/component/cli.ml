@@ -9,7 +9,11 @@ end
 
 open Common
 
-module Make (Cfg : Config.S with type t := Gemini.Text.line) : S = struct
+module Make
+    (Cfg : Config.S
+             with type t := Gemini.Text.line
+              and type color = LTerm_style.color
+              and type markup = LTerm_text.markup) : S = struct
   let print_text _ = print_endline
 
   let print_gemini lines =

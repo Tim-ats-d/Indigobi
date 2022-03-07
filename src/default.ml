@@ -14,11 +14,13 @@ module Color = struct
 end
 
 module Cfg = struct
-  open LTerm_text
-
   type t = Gemini.Text.line
+  type color = LTerm_style.color
+  type markup = LTerm_text.markup
 
   let error_clr = Color.dark_red
+
+  open LTerm_text
 
   let make_prompt meta =
     let msg = meta ^ " " in

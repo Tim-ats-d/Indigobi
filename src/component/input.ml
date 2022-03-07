@@ -5,7 +5,11 @@ module type S = sig
   val sensitive : string -> string
 end
 
-module Make (Cfg : Config.S) = struct
+module Make
+    (Cfg : Config.S
+             with type color = LTerm_style.color
+              and type markup = LTerm_text.markup) =
+struct
   let input meta =
     Cfg.make_prompt meta |> LTerm_text.eval |> LTerm.prints |> Lwt_main.run;
     try Urllib.encode @@ input_line stdin with End_of_file -> exit 1
