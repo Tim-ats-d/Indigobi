@@ -18,7 +18,10 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
     | Some header -> (
         match header.status with
         | `Input (meta, `Sensitive s) ->
-            let input = if s then Input.sensitive meta else Input.input meta in
+            let input =
+              Lwt_main.run
+              @@ if s then Input.sensitive meta else Input.input meta
+            in
             request @@ G.Request.attach_input req input
         | `Success ->
             let body = Requester.parse_body socket in

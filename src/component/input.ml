@@ -1,8 +1,8 @@
 open Common
 
 module type S = sig
-  val input : string -> string
-  val sensitive : string -> string
+  val input : string -> string Lwt.t
+  val sensitive : string -> string Lwt.t
 end
 
 module Make
@@ -10,9 +10,17 @@ module Make
              with type color = LTerm_style.color
               and type markup = LTerm_text.markup) =
 struct
+  open Lwt.Syntax
+
   let input meta =
-    Cfg.make_prompt meta |> LTerm_text.eval |> LTerm.prints |> Lwt_main.run;
-    try Urllib.encode @@ input_line stdin with End_of_file -> exit 1
+    let* term = Lazy.force LTerm.stdout in
+    let* () = Cfg.make_prompt meta |> LTerm_text.eval |> LTerm.fprints term in
+    let* () = LTerm.flush term in
+    let user_input =
+      Zed_string.to_utf8 @@ (new LTerm_read_line.read_line ())#eval
+    in
+    let* () = LTerm.clear_line_prev term in
+    Lwt.return @@ user_input
 
   class hidden_read ~prompt term =
     object (self)
@@ -26,13 +34,11 @@ struct
     end
 
   let sensitive meta =
-    let ( >>= ) = Lwt.( >>= ) in
-    let launch () =
-      Lazy.force LTerm.stdout >>= fun term ->
-      LTerm.flush term >>= fun () ->
-      let prompt = LTerm_text.eval @@ Cfg.make_prompt meta in
-      (new hidden_read ~prompt term)#run >>= fun input ->
-      Zed_string.to_utf8 input |> Urllib.encode |> Lwt.return
-    in
-    Lwt_main.run @@ launch ()
+    let* term = Lazy.force LTerm.stdout in
+    let prompt = LTerm_text.eval @@ Cfg.make_prompt meta in
+    let* input = (new hidden_read ~prompt term)#run in
+    let* () = LTerm.flush term in
+    let user_input = Zed_string.to_utf8 input |> Urllib.encode in
+    let* () = LTerm.clear_line_prev term in
+    Lwt.return user_input
 end
