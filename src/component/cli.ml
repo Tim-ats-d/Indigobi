@@ -1,9 +1,9 @@
 module type S = sig
-  val print_text : string -> string -> unit
-  val print_gemini : Gemini.Text.t -> unit
-  val print_other : string -> string -> unit
+  val handle_text : string -> string -> unit
+  val handle_gemini : Gemini.Text.t -> unit
+  val handle_other : string -> string -> unit
 
-  val print_err :
+  val handle_err :
     [< `GeminiErr of Gemini.Status.err | `CommonErr of Common.Err.t ] -> unit
 end
 
@@ -14,9 +14,9 @@ module Make
              with type t := Gemini.Text.line
               and type color = LTerm_style.color
               and type markup = LTerm_text.markup) : S = struct
-  let print_text _ = print_endline
+  let handle_text _ = print_endline
 
-  let print_gemini lines =
+  let handle_gemini lines =
     let term = Lazy.force LTerm.stdout in
     Lwt_main.run
     @@ Lwt_list.iter_s
@@ -28,9 +28,9 @@ module Make
              >>= fun () -> LTerm.flush term)
          lines
 
-  let print_other _ _ = failwith "todo: non-text format"
+  let handle_other _ _ = failwith "todo: non-text format"
 
-  let print_err err =
+  let handle_err err =
     let msg =
       match err with
       | `GeminiErr g -> "Gemini error: " ^ Gemini.Status.show g
