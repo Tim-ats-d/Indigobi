@@ -18,7 +18,7 @@ module Make (Cli : Cli.S) (Backend : Backend.S) (Args : Args.S) : S = struct
           Backend.get ~url:(Common.Urllib.to_string url) ~host:url.domain
         with
         | Ok ({ Mime.media_type = `Gemini; _ }, body) ->
-            if !Args.raw then Cli.handle_text "" body
+            if Args.params.raw then Cli.handle_text "" body
             else Cli.handle_gemini @@ Gemini.Text.parse body
         | Ok ({ Mime.media_type = `Text txt; _ }, body) ->
             Cli.handle_text txt body

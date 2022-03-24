@@ -1,9 +1,10 @@
 module type S = sig
-  val usage_msg : Arg.usage_msg
-  val address : string list ref
-  val raw : bool ref
-  val anon_fun : Arg.anon_fun
-  val speclist : (Arg.key * Arg.spec * Arg.doc) list
+  type t = {
+    mutable address : string list;
+    mutable raw : bool;
+  }
+
+  val params : t
   val parse_args : (string, Common.Err.t) result
 end
 
