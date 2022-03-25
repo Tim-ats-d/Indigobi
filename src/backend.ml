@@ -10,13 +10,12 @@ end
 module Make (Input : Input.S) (Requester : Requester.S) : S = struct
   let rec request req =
     let socket = Requester.init req in
-    let hopt =
+    match
       G.Request.to_string req |> Requester.fetch_header socket |> G.Header.parse
-    in
-    match hopt with
+    with
     | None -> Error `MalformedServerResponse
-    | Some header -> (
-        match header.status with
+    | Some { status; meta } -> (
+        match status with
         | `Input (meta, `Sensitive s) ->
             let input =
               Lwt_main.run
@@ -26,7 +25,7 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
         | `Success ->
             let body = Requester.parse_body socket in
             Requester.close socket;
-            Ok (Mime.parse header.meta, body)
+            Ok (Mime.parse meta, body)
         | `Redirect _ -> failwith "todo: redirection"
         | ( `TemporaryFailure _ | `PermanentFailure _
           | `ClientCertificateRequired _ ) as err ->

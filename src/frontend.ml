@@ -6,16 +6,15 @@ end
 
 module Make (Backend : Backend.S) (PPrint : Pprint.S) (ArgParser : Args.S) : S =
 struct
-  let handle_no_url url_opt =
-    match url_opt with
-    | None ->
-        Lwt_main.run @@ PPrint.handle_err @@ `CommonErr `NoUrlProvided;
-        exit 1
-    | Some addr -> addr
-
   let launch () =
     let args = ArgParser.parse () in
-    let url = Common.Urllib.parse (handle_no_url args.Args.address) "" in
+    let url =
+      match args.Args.address with
+      | None ->
+          Lwt_main.run @@ PPrint.handle_err @@ `CommonErr `NoUrlProvided;
+          exit 1
+      | Some adrr -> Common.Urllib.parse adrr ""
+    in
     match Backend.get ~url:(Common.Urllib.to_string url) ~host:url.domain with
     | Ok ({ Mime.media_type = `Gemini; _ }, body) ->
         if args.Args.raw then PPrint.handle_text "" body
