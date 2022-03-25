@@ -2,12 +2,12 @@ type t =
   [ `MalformedLink
   | `MalformedServerResponse
   | `NotFound
-  | `UnknownHostOrServiceName
-  | `TooManyAddressSpecified ]
+  | `NoUrlProvided
+  | `UnknownHostOrServiceName ]
 
 let show = function
   | `MalformedLink -> "malformed link"
   | `MalformedServerResponse -> "mal formed server response"
   | `NotFound -> "not found"
+  | `NoUrlProvided -> "no url is provided"
   | `UnknownHostOrServiceName -> "unknown host or service name"
-  | `TooManyAddressSpecified -> "too many address specified"

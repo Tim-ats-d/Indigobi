@@ -2,7 +2,7 @@ type t =
   [ `MalformedLink
   | `MalformedServerResponse
   | `NotFound
-  | `UnknownHostOrServiceName
-  | `TooManyAddressSpecified ]
+  | `NoUrlProvided
+  | `UnknownHostOrServiceName ]
 
 val show : t -> string

@@ -9,4 +9,4 @@ let main () =
   let module Front =
     Frontend.Make (Cli.Make (Default.Cfg)) (Back) (Args.Default)
   in
-  Lwt_main.run @@ Front.search_and_display ~default_url:"gemini://iich.space/"
+  Lwt_main.run @@ Front.launch ()

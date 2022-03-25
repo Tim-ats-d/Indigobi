@@ -1,8 +1,7 @@
-module type S = sig
-  type t = { mutable address : string list; mutable raw : bool }
+type t = { mutable address : string option; mutable raw : bool }
 
-  val params : t
-  val parse_args : (string, Common.Err.t) result
+module type S = sig
+  val parse : unit -> t
 end
 
 module Default : S
