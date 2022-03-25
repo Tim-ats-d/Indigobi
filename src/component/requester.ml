@@ -1,18 +1,25 @@
 module G = Gemini
 
 module type S = sig
-  val init : G.Request.t -> Ssl.socket
-  val close : Ssl.socket -> unit
-  val fetch_header : Ssl.socket -> string -> string
-  val parse_body : Ssl.socket -> string
+  val init : G.Request.t -> Ssl.context
+  val fetch_header : Ssl.context -> string -> string
+  val parse_body : Ssl.context -> string
 end
 
 module Default : S = struct
   let init req =
-    let ctx = Ssl.create_context TLSv1_2 Client_context in
-    Ssl.open_connection_with_context ctx req.G.Request.addr.ai_addr
-
-  let close = Ssl.shutdown_connection
+    let ctx = Ssl.create_context () in
+    (if req.G.Request.cert <> "" then
+     let cert_re =
+       Str.regexp
+         "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
+          \\(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\\)"
+     in
+     Ssl.use_certificate_from_string ctx
+       (Str.replace_first cert_re "\\1" req.G.Request.cert)
+       (Str.replace_first cert_re "\\2" req.G.Request.cert));
+    Ssl.open_connection_with_context ctx req.G.Request.host req.G.Request.port;
+    ctx
 
   let fetch_header socket req =
     Ssl.output_string socket req;

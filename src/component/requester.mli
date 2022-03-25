@@ -1,8 +1,7 @@
 module type S = sig
-  val init : Gemini.Request.t -> Ssl.socket
-  val close : Ssl.socket -> unit
-  val fetch_header : Ssl.socket -> string -> string
-  val parse_body : Ssl.socket -> string
+  val init : Gemini.Request.t -> Ssl.context
+  val fetch_header : Ssl.context -> string -> string
+  val parse_body : Ssl.context -> string
 end
 
 module Default : S

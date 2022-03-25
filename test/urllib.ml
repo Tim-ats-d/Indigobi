@@ -12,6 +12,7 @@ let pass () =
         {
           scheme = "gemini";
           domain = "gemini.circumlunar.space";
+          port = 1965;
           path = "/news";
           query = "hello";
         }
@@ -23,6 +24,7 @@ let pass () =
         {
           scheme = "gemini";
           domain = "gemini.circumlunar.space";
+          port = 1965;
           path = "/news";
           query = "";
         }
@@ -35,14 +37,21 @@ let pass () =
       = {
           scheme = "gemini";
           domain = "gemini.circumlunar.space";
+          port = 1965;
           path = "/news";
           query = "hello";
         })
   in
   let _ =
     assert (
-      parse "https://www.fsf.org" "www.fsf.org"
-      = { scheme = "https"; domain = "www.fsf.org"; path = "/"; query = "" })
+      parse "https://www.fsf.org:443" "www.fsf.org"
+      = {
+          scheme = "https";
+          domain = "www.fsf.org";
+          port = 443;
+          path = "/";
+          query = "";
+        })
   in
   let _ =
     assert (
@@ -50,6 +59,7 @@ let pass () =
       = {
           scheme = "gemini";
           domain = "gemini.circumlunar.space";
+          port = 1965;
           path = "/news";
           query = "hello";
         })
@@ -60,6 +70,7 @@ let pass () =
       = {
           scheme = "gemini";
           domain = "geminispace.info";
+          port = 1965;
           path = "/search";
           query = "gemini";
         })

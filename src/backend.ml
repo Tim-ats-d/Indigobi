@@ -4,6 +4,8 @@ module type S = sig
   val get :
     url:string ->
     host:string ->
+    port:int ->
+    cert:string ->
     (Mime.t * string, [> Common.Err.t | G.Status.err ]) result
 end
 
@@ -24,29 +26,23 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
             request @@ G.Request.attach_input req input
         | `Success ->
             let body = Requester.parse_body socket in
-            Requester.close socket;
             Ok (Mime.parse meta, body)
         | `Redirect _ -> failwith "todo: redirection"
         | ( `TemporaryFailure _ | `PermanentFailure _
           | `ClientCertificateRequired _ ) as err ->
             Error err)
 
-  let get ~url ~host =
+  let get ~url ~host ~port ~cert =
     Ssl.init ();
-    match Unix.getaddrinfo host "1965" [] with
-    | [] -> Error `UnknownHostOrServiceName
-    | address ->
-        List.fold_left
-          (fun acc addr ->
-            match acc with
-            | Ok _ as ok -> ok
-            | Error `NotFound -> (
-                try
-                  match G.Request.create url ~addr with
-                  | None -> Error `MalformedLink
-                  | Some r -> request r
-                with Unix.Unix_error _ -> Error `NotFound)
-            | Error _ as err -> err)
-          (Error `NotFound)
-          address
+    let cert_str =
+      if cert <> "" then (
+        let ch = open_in cert in
+        let s = really_input_string ch (in_channel_length ch) in
+        close_in ch;
+        s)
+      else ""
+    in
+    match G.Request.create url ~host ~port ~cert:cert_str with
+    | None -> Error `MalformedLink
+    | Some r -> request r
 end

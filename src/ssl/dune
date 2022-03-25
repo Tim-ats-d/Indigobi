@@ -1,0 +1,7 @@
+(library
+ (name ssl)
+ (foreign_stubs
+  (language c)
+  (names ssl))
+ (c_library_flags
+  (-L/usr/local/opt/openssl@3/lib -lssl -lcrypto)))

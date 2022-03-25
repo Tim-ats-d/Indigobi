@@ -15,7 +15,11 @@ struct
           exit 1
       | Some adrr -> Common.Urllib.parse adrr ""
     in
-    match Backend.get ~url:(Common.Urllib.to_string url) ~host:url.domain with
+    match
+      Backend.get
+        ~url:(Common.Urllib.to_string url)
+        ~host:url.domain ~port:url.port ~cert:args.Args.certificate
+    with
     | Ok ({ Mime.media_type = `Gemini; _ }, body) ->
         if args.Args.raw then PPrint.handle_text "" body
         else PPrint.handle_gemini @@ Gemini.Text.parse body
