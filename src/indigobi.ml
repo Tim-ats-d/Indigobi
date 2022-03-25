@@ -7,6 +7,6 @@ let main () =
   let module Back = Backend.Make (Input.Make (Default.Cfg)) (Requester.Default)
   in
   let module Front =
-    Frontend.Make (Cli.Make (Default.Cfg)) (Back) (Args.Default)
+    Frontend.Make (Back) (Pprint.Make (Default.Cfg)) (Args.Default)
   in
   Lwt_main.run @@ Front.launch ()

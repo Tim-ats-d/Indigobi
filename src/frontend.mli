@@ -3,7 +3,7 @@ module type S = sig
 end
 
 module Make : functor
-  (Cli : Component.Cli.S)
   (Backend : Backend.S)
+  (PPrint : Component.Pprint.S)
   (ArgParser : Component.Args.S)
   -> S
