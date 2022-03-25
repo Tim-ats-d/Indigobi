@@ -35,12 +35,12 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
   let get ~url ~host ~port ~cert =
     Ssl.init ();
     let cert_str =
-      if cert <> "" then (
+      if cert = "" then ""
+      else
         let ch = open_in cert in
         let s = really_input_string ch (in_channel_length ch) in
         close_in ch;
-        s)
-      else ""
+        s
     in
     match G.Request.create url ~host ~port ~cert:cert_str with
     | None -> Error `MalformedLink
