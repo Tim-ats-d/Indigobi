@@ -4,7 +4,7 @@ module type S = sig
     host:string ->
     port:int ->
     cert:string ->
-    (Component.Mime.t * string, [> Common.Err.t | Gemini.Status.err ]) result
+    (Component.Mime.t * string, [> Common.Err.back | Gemini.Status.err ]) result
 end
 
 module Make : functor

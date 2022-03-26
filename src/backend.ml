@@ -6,7 +6,7 @@ module type S = sig
     host:string ->
     port:int ->
     cert:string ->
-    (Mime.t * string, [> Common.Err.t | G.Status.err ]) result
+    (Mime.t * string, [> Common.Err.back | G.Status.err ]) result
 end
 
 module Make (Input : Input.S) (Requester : Requester.S) : S = struct

@@ -1,8 +1,11 @@
-type t =
+type front = [ `NoUrlProvided ]
+
+type back =
   [ `MalformedLink
   | `MalformedServerResponse
   | `NotFound
-  | `NoUrlProvided
   | `UnknownHostOrServiceName ]
+
+type t = [ front | back ]
 
 val show : t -> string
