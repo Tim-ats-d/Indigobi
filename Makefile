@@ -19,3 +19,10 @@ fmt:
 
 deps:
 	dune external-lib-deps --missing @@default
+
+install:
+	dune build @install
+	dune install
+
+uninstall:
+	dune uninstall

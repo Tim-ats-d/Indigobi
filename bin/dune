@@ -1,3 +1,8 @@
 (executable
  (name indigobi)
  (libraries indigobi))
+
+(install
+ (section bin)
+ (files
+  (indigobi.exe as indigo)))
