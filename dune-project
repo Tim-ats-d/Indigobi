@@ -8,7 +8,7 @@
 
 (authors "The indigobi programmers")
 
-(maintainers "tim.arnouts@protonmail.com")
+(maintainers "tim.arnouts@protonmail.com" "lelolartichaut@laposte.net")
 
 (source
  (github Tim-ats-d/Indigobi))
@@ -24,4 +24,4 @@
   dune
   lambda-term
   (ocaml
-   (>= 4.11))))
+   (>= 4.13))))
