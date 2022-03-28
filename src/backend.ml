@@ -26,6 +26,7 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
             request @@ G.Request.attach_input req input
         | `Success ->
             let body = Requester.parse_body socket in
+            Requester.close socket;
             Ok (Mime.parse meta, body)
         | `Redirect _ -> failwith "todo: redirection"
         | ( `TemporaryFailure _ | `PermanentFailure _
@@ -34,15 +35,28 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
 
   let get ~url ~host ~port ~cert =
     Ssl.init ();
-    let cert_str =
-      if cert = "" then ""
-      else
-        let ch = open_in cert in
-        let s = really_input_string ch (in_channel_length ch) in
-        close_in ch;
-        s
-    in
-    match G.Request.create url ~host ~port ~cert:cert_str with
-    | None -> Error `MalformedLink
-    | Some r -> request r
+    match Unix.getaddrinfo host (Printf.sprintf "%i" port) [] with
+    | [] -> Error `UnknownHostOrServiceName
+    | address ->
+        List.fold_left
+          (fun acc addr ->
+            match acc with
+            | Ok _ as ok -> ok
+            | Error `NotFound -> (
+                try
+                  let cert_str =
+                    if cert = "" then ""
+                    else
+                      let ch = open_in cert in
+                      let s = really_input_string ch (in_channel_length ch) in
+                      close_in ch;
+                      s
+                  in
+                  match G.Request.create url ~addr ~cert:cert_str with
+                  | None -> Error `MalformedLink
+                  | Some r -> request r
+                with Unix.Unix_error _ -> Error `NotFound)
+            | Error _ as err -> err)
+          (Error `NotFound)
+          address
 end

@@ -1,4 +1,4 @@
 (library
  (name common)
  (modules_without_implementation config)
- (libraries str ssl))
+ (libraries str))
