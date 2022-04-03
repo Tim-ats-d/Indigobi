@@ -1,4 +1,4 @@
-type front = [ `NoUrlProvided ]
+type front = [ `UnknownSubCmd of string | `NoUrlProvided ]
 
 type back =
   [ `MalformedLink

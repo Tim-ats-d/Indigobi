@@ -2,7 +2,7 @@
 opam-version: "2.0"
 version: "0.0.1"
 synopsis: "A cute Gemini client written in OCaml"
-maintainer: ["tim.arnouts@protonmail.com"]
+maintainer: ["tim.arnouts@protonmail.com" "lelolartichaut@laposte.net"]
 authors: ["The indigobi programmers"]
 license: "GPL-3.0"
 homepage: "https://github.com/Tim-ats-d/Indigobi"
@@ -10,7 +10,8 @@ bug-reports: "https://github.com/Tim-ats-d/Indigobi/issues"
 depends: [
   "dune" {>= "2.9"}
   "lambda-term"
-  "ocaml" {>= "4.11"}
+  "ssl"
+  "ocaml" {>= "4.13"}
   "odoc" {with-doc}
 ]
 build: [

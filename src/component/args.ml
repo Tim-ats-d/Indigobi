@@ -1,26 +1,48 @@
-type t = {
-  mutable address : string option;
+type t = Search of search
+
+and search = {
+  mutable adresss : string option;
   mutable raw : bool;
   mutable certificate : string;
 }
+
+exception UnknownSubCmd of string
 
 module type S = sig
   val parse : unit -> t
 end
 
 module Default : S = struct
-  let usage_msg = Printf.sprintf "%s [OPTION]... [ADRESS]" Sys.argv.(0)
-  let default = { address = None; raw = false; certificate = "" }
+  let search = { adresss = None; raw = false; certificate = "" }
 
-  let speclist =
+  let specs_search =
     [
-      ("--raw", Arg.Unit (fun () -> default.raw <- true), "Disable formatting");
+      ("--raw", Arg.Unit (fun () -> search.raw <- true), "Disable formatting");
       ( "--cert",
-        Arg.String (fun certificate -> default.certificate <- certificate),
+        Arg.String (fun c -> search.certificate <- c),
         "Attach client certificate" );
     ]
 
+  let speclist = ref []
+  let sub_cmd : [ `Search ] option ref = ref None
+
+  let anon_fun = function
+    | "search" ->
+        sub_cmd := Some `Search;
+        speclist := specs_search;
+        search.adresss <- Some Sys.argv.(2)
+    | other when Sys.argv.(1) <> "search" -> raise @@ UnknownSubCmd other
+    | _ -> ()
+
   let parse () =
-    Arg.parse speclist (fun adrr -> default.address <- Some adrr) usage_msg;
-    default
+    let usage_msg =
+      Printf.sprintf "%s [ COMMAND ] [ OPTIONS ]..." Sys.argv.(0)
+    in
+    (try Arg.parse_dynamic speclist anon_fun usage_msg
+     with Invalid_argument _ -> ());
+    match !sub_cmd with
+    | None ->
+        Arg.usage !speclist usage_msg;
+        exit 1
+    | Some `Search -> Search search
 end

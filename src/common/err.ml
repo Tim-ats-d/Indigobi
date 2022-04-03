@@ -1,4 +1,4 @@
-type front = [ `NoUrlProvided ]
+type front = [ `UnknownSubCmd of string | `NoUrlProvided ]
 
 type back =
   [ `MalformedLink
@@ -14,3 +14,5 @@ let show = function
   | `NotFound -> "not found"
   | `NoUrlProvided -> "no url is provided"
   | `UnknownHostOrServiceName -> "unknown host or service name"
+  | `UnknownSubCmd sub_cmd ->
+      Printf.sprintf "unknown sub command \"%s\"" sub_cmd
