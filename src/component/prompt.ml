@@ -5,16 +5,12 @@ module type S = sig
   val prompt_sensitive : string -> string Lwt.t
 end
 
-module Make
-    (Cfg : Config.S
-             with type color = LTerm_style.color
-              and type markup = LTerm_text.markup) =
-struct
+module Make (Cfg : Config.S) = struct
   open Lwt.Syntax
 
   let prompt meta =
     let* term = Lazy.force LTerm.stdout in
-    let* () = Cfg.make_prompt meta |> LTerm_text.eval |> LTerm.fprints term in
+    let* () = LTerm.fprints term @@ Cfg.stylize_prompt meta in
     let* () = LTerm.flush term in
     let user_input =
       Zed_string.to_utf8 @@ (new LTerm_read_line.read_line ())#eval
@@ -35,8 +31,7 @@ struct
 
   let prompt_sensitive meta =
     let* term = Lazy.force LTerm.stdout in
-    let prompt = LTerm_text.eval @@ Cfg.make_prompt meta in
-    let* input = (new hidden_read ~prompt term)#run in
+    let* input = (new hidden_read ~prompt:(Cfg.stylize_prompt meta) term)#run in
     let* () = LTerm.flush term in
     let user_input = Zed_string.to_utf8 input |> Urllib.encode in
     let* () = LTerm.clear_line_prev term in

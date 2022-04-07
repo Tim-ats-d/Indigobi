@@ -1,0 +1,3 @@
+(library
+ (name config)
+ (libraries directories lambda-term gemini))

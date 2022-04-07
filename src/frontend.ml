@@ -19,9 +19,8 @@ module Make (Backend : Backend.S) (Printer : Printer.S) (ArgParser : Cli.S) :
           | Some adrr -> Urllib.parse adrr ""
         in
         match
-          Backend.get
-            ~url:(Urllib.to_string url)
-            ~host:url.domain ~port:url.port ~cert:certificate
+          Backend.get ~url:(Urllib.to_string url) ~host:url.domain
+            ~port:url.port ~cert:certificate
         with
         | Ok ({ Mime.media_type = `Gemini; _ }, body) ->
             if raw then Printer.handle_text body

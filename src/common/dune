@@ -1,4 +1,3 @@
 (library
  (name common)
- (modules_without_implementation config)
  (libraries str))

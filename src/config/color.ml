@@ -1,0 +1,11 @@
+let rgb = LTerm_style.rgb
+let default = LTerm_style.default
+let blue = rgb 88 166 255
+let dark_blue = rgb 0 44 170
+let dark_green = rgb 9 121 49
+let dark_grey = rgb 48 54 61
+let dark_red = rgb 177 13 13
+let light_grey = rgb 139 148 158
+let light_red = rgb 211 60 46
+let purple = rgb 156 75 191
+let yellow = rgb 249 214 74
