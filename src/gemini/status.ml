@@ -31,7 +31,7 @@ let of_int meta = function
   | 60 -> `ClientCertificateRequired (meta, `None)
   | 61 -> `ClientCertificateRequired (meta, `CertificateNotAuthorised)
   | 62 -> `ClientCertificateRequired (meta, `CertificateNotValid)
-  | _ -> raise @@ Invalid_argument "GStatus.of_int"
+  | _ -> raise @@ Invalid_argument "Status.of_int"
 
 let show =
   let fmt = Printf.sprintf in

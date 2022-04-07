@@ -8,6 +8,6 @@ module type S = sig
 end
 
 module Make : functor
-  (Input : Component.Input.S)
+  (Prompt : Component.Prompt.S)
   (Requester : Component.Requester.S)
   -> S

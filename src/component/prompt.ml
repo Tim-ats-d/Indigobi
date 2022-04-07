@@ -1,8 +1,8 @@
 open Common
 
 module type S = sig
-  val input : string -> string Lwt.t
-  val sensitive : string -> string Lwt.t
+  val prompt : string -> string Lwt.t
+  val prompt_sensitive : string -> string Lwt.t
 end
 
 module Make
@@ -12,7 +12,7 @@ module Make
 struct
   open Lwt.Syntax
 
-  let input meta =
+  let prompt meta =
     let* term = Lazy.force LTerm.stdout in
     let* () = Cfg.make_prompt meta |> LTerm_text.eval |> LTerm.fprints term in
     let* () = LTerm.flush term in
@@ -33,7 +33,7 @@ struct
         | LTerm_read_line.Break -> () | action -> super#send_action action
     end
 
-  let sensitive meta =
+  let prompt_sensitive meta =
     let* term = Lazy.force LTerm.stdout in
     let prompt = LTerm_text.eval @@ Cfg.make_prompt meta in
     let* input = (new hidden_read ~prompt term)#run in

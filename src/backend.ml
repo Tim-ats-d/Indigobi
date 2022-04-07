@@ -9,7 +9,7 @@ module type S = sig
     (Mime.t * string, [> Common.Err.back | G.Status.err ]) result
 end
 
-module Make (Input : Input.S) (Requester : Requester.S) : S = struct
+module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
   let rec request req =
     let socket = Requester.init req in
     match
@@ -21,7 +21,7 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
         | `Input (meta, `Sensitive s) ->
             let input =
               Lwt_main.run
-              @@ if s then Input.sensitive meta else Input.input meta
+              @@ if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
             in
             request @@ G.Request.attach_input req input
         | `Success ->
@@ -35,7 +35,7 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
 
   let get ~url ~host ~port ~cert =
     Ssl.init ();
-    match Unix.getaddrinfo host (Printf.sprintf "%i" port) [] with
+    match Unix.getaddrinfo host (Int.to_string port) [] with
     | [] -> Error `UnknownHostOrServiceName
     | address ->
         List.fold_left
@@ -48,7 +48,7 @@ module Make (Input : Input.S) (Requester : Requester.S) : S = struct
                     if cert = "" then ""
                     else
                       let ch = open_in cert in
-                      let s = really_input_string ch (in_channel_length ch) in
+                      let s = really_input_string ch @@ in_channel_length ch in
                       close_in ch;
                       s
                   in
