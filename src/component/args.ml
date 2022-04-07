@@ -6,10 +6,9 @@ and search = {
   mutable certificate : string;
 }
 
-exception UnknownSubCmd of string
-
 module type S = sig
-  val parse : unit -> t
+  val parse :
+    unit -> (t, [> `UnknownSubCmd of string | `Usage of string ]) result
 end
 
 module Default : S = struct
@@ -26,23 +25,30 @@ module Default : S = struct
   let speclist = ref []
   let sub_cmd : [ `Search ] option ref = ref None
 
+  exception UnknownSubCmd of string
+
   let anon_fun = function
     | "search" ->
         sub_cmd := Some `Search;
         speclist := specs_search;
         search.adresss <- Some Sys.argv.(2)
-    | other when Sys.argv.(1) <> "search" -> raise @@ UnknownSubCmd other
+    | other when Sys.argv.(1) <> "search" ->
+        raise_notrace @@ UnknownSubCmd other
     | _ -> ()
 
   let parse () =
     let usage_msg =
       Printf.sprintf "%s [ COMMAND ] [ OPTIONS ]..." Sys.argv.(0)
     in
-    (try Arg.parse_dynamic speclist anon_fun usage_msg
-     with Invalid_argument _ -> ());
-    match !sub_cmd with
-    | None ->
-        Arg.usage !speclist usage_msg;
-        exit 1
-    | Some `Search -> Search search
+    let error_msg () =
+      match !sub_cmd with
+      | None -> Error (`Usage (Arg.usage_string !speclist usage_msg))
+      | Some `Search -> Ok (Search search)
+    in
+    try
+      Arg.parse_dynamic speclist anon_fun usage_msg;
+      error_msg ()
+    with
+    | Invalid_argument _ -> error_msg ()
+    | UnknownSubCmd cmd -> Error (`UnknownSubCmd cmd)
 end

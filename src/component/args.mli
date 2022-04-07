@@ -6,11 +6,9 @@ and search = {
   mutable certificate : string;
 }
 
-exception UnknownSubCmd of string
-
 module type S = sig
-  val parse : unit -> t
-  (** @raise [UnknownSubCmd] *)
+  val parse :
+    unit -> (t, [> `UnknownSubCmd of string | `Usage of string ]) result
 end
 
 module Default : S
