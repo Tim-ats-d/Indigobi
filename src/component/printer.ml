@@ -1,38 +1,57 @@
 module type S = sig
-  val handle_text : ?typ:string -> string -> unit Lwt.t
-  val handle_gemini : Gemini.Text.t -> unit Lwt.t
-  val handle_other : string -> string -> unit Lwt.t
-
-  val handle_err :
-    [< `GeminiErr of Gemini.Status.err | `CommonErr of Common.Err.t ] ->
-    unit Lwt.t
+  val stylize_gemini : Gemini.Text.line -> LTerm_text.t
+  val stylize_error : string -> LTerm_text.t
+  val stylize_prompt : string -> LTerm_text.t
 end
 
-module Make (Cfg : Config.S) : S = struct
-  let handle_text ?typ = Lwt_io.printl [@@warning "-27"]
+module Make (Theme : Config.Theme.S) : S = struct
+  module Color = Config.Color
 
-  open Lwt.Syntax
+  let stylize_gemini = function
+    | Gemini.Text.Text txt -> LTerm_text.stylise txt Theme.text
+    | Link { url; name } ->
+        LTerm_text.eval
+          [
+            B_bold true;
+            S "⇒ ";
+            B_underline true;
+            B_fg Color.blue;
+            S url;
+            E_fg;
+            E_underline;
+            S " ";
+            B_fg Color.default;
+            S (Option.value name ~default:"");
+            E_fg;
+            E_bold;
+          ]
+    | Preformat { text; _ } -> LTerm_text.stylise text Theme.preformat
+    | Heading (`H1, h) -> LTerm_text.stylise h Theme.h1
+    | Heading (`H2, h) -> LTerm_text.stylise h Theme.h2
+    | Heading (`H3, h) -> LTerm_text.stylise h Theme.h3
+    | ListItem item ->
+        LTerm_text.eval
+          [
+            S " ";
+            B_bold true;
+            B_fg Color.default;
+            S " ";
+            E_fg;
+            E_bold;
+            S " ";
+            S item;
+          ]
+    | Quote q ->
+        LTerm_text.eval
+          [
+            B_fg Color.dark_grey;
+            S " █ ";
+            E_fg;
+            B_fg Color.light_grey;
+            S q;
+            E_fg;
+          ]
 
-  let handle_gemini lines =
-    let print_line line =
-      let* term = Lazy.force LTerm.stdout in
-      let* () =
-        try LTerm.fprintls term @@ Cfg.stylize_gemini line
-        with Zed_string.Invalid (_, text) -> LTerm.printl text
-      in
-      LTerm.flush term
-    in
-    Lwt_list.iter_s print_line lines
-
-  let handle_other _ _ = Lwt.return @@ failwith "todo: non-text format"
-
-  let handle_err err =
-    let msg =
-      match err with
-      | `GeminiErr g -> "Gemini error: " ^ Gemini.Status.show g
-      | `CommonErr err -> "Error: " ^ Common.Err.show err
-    in
-    let* term = Lazy.force LTerm.stderr in
-    let* () = LTerm.fprintls term @@ Cfg.stylize_error msg in
-    LTerm.flush term
+  let stylize_error = Fun.flip LTerm_text.stylise Theme.error
+  let stylize_prompt meta = LTerm_text.stylise (meta ^ " ") Theme.prompt
 end

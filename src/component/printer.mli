@@ -1,11 +1,7 @@
 module type S = sig
-  val handle_text : ?typ:string -> string -> unit Lwt.t
-  val handle_gemini : Gemini.Text.t -> unit Lwt.t
-  val handle_other : string -> string -> unit Lwt.t
-
-  val handle_err :
-    [< `CommonErr of Common.Err.t | `GeminiErr of Gemini.Status.err ] ->
-    unit Lwt.t
+  val stylize_gemini : Gemini.Text.line -> LTerm_text.t
+  val stylize_error : string -> LTerm_text.t
+  val stylize_prompt : string -> LTerm_text.t
 end
 
-module Make : functor (Cfg : Config.S) -> S
+module Make (Theme : Config.Theme.S) : S

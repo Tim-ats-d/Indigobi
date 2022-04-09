@@ -3,4 +3,4 @@ module type S = sig
   val prompt_sensitive : string -> string Lwt.t
 end
 
-module Make : functor (Cfg : Config.S) -> S
+module Make : functor (Printer : Printer.S) -> S

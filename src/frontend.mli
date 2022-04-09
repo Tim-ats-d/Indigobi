@@ -4,6 +4,6 @@ end
 
 module Make : functor
   (Backend : Backend.S)
-  (Printer : Component.Printer.S)
+  (ResourceHandler : Component.Handler.S)
   (ArgParser : Component.Cli.S)
   -> S
