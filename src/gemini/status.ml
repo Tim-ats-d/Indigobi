@@ -33,7 +33,7 @@ let of_int meta = function
   | 62 -> `ClientCertificateRequired (meta, `CertificateNotValid)
   | _ -> raise @@ Invalid_argument "Status.of_int"
 
-let show =
+let pp () =
   let fmt = Printf.sprintf in
   function
   | `TemporaryFailure (m, err) ->

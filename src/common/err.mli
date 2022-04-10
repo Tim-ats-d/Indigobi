@@ -8,4 +8,4 @@ type back =
 
 type t = [ front | back ]
 
-val show : t -> string
+val pp : unit -> t -> string

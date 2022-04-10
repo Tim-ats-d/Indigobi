@@ -8,11 +8,12 @@ type back =
 
 type t = [ front | back ]
 
-let show = function
-  | `MalformedLink -> "malformed link"
-  | `MalformedServerResponse -> "mal formed server response"
-  | `NotFound -> "not found"
-  | `NoUrlProvided -> "no url is provided"
-  | `UnknownHostOrServiceName -> "unknown host or service name"
-  | `UnknownSubCmd sub_cmd ->
-      Printf.sprintf "unknown sub command \"%s\"" sub_cmd
+let pp () =
+  let fmt = Printf.sprintf in
+  function
+  | `MalformedLink -> fmt "malformed link"
+  | `MalformedServerResponse -> fmt "mal formed server response"
+  | `NotFound -> fmt "not found"
+  | `NoUrlProvided -> fmt "no url is provided"
+  | `UnknownHostOrServiceName -> fmt "unknown host or service name"
+  | `UnknownSubCmd sub_cmd -> fmt "unknown sub command %S" sub_cmd

@@ -29,8 +29,8 @@ module Make (Printer : Printer.S) : S = struct
   let handle_err err =
     let msg =
       match err with
-      | `GeminiErr g -> "Gemini error: " ^ Gemini.Status.show g
-      | `CommonErr err -> "Error: " ^ Common.Err.show err
+      | `GeminiErr g -> Printf.sprintf "Gemini error: %a" Gemini.Status.pp g
+      | `CommonErr err -> Printf.sprintf "Error: %a" Common.Err.pp err
     in
     let* term = Lazy.force LTerm.stderr in
     let* () = LTerm.fprintls term @@ Printer.stylize_error msg in

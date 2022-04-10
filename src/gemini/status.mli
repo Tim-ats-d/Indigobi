@@ -13,4 +13,4 @@ type t =
   | err ]
 
 val of_int : string -> int -> t
-val show : err -> string
+val pp : unit -> err -> string

@@ -8,11 +8,11 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   S = struct
   open Lwt.Syntax
 
-  let make_history () : (module History.DEFAULT_HIST) =
+  let make_history () : (module History.S) =
     match Dir.cache_dir with
     | None -> failwith "No history path"
     | Some path ->
-        (module History.MakeDefault (struct
+        (module History.Make (struct
           let path = path
         end))
 
