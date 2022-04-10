@@ -7,5 +7,6 @@ let dark_grey = rgb 48 54 61
 let dark_red = rgb 177 13 13
 let light_grey = rgb 139 148 158
 let light_red = rgb 211 60 46
+let orange = rgb 254 175 47
 let purple = rgb 156 75 191
 let yellow = rgb 249 214 74

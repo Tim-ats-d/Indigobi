@@ -3,6 +3,8 @@ module type S = sig
   val handle_gemini : Gemini.Text.t -> unit Lwt.t
   val handle_other : string -> string -> unit Lwt.t
 
+  val handle_warning : Common.Warning.t -> unit Lwt.t
+
   val handle_err :
     [< `CommonErr of Common.Err.t | `GeminiErr of Gemini.Status.err ] ->
     unit Lwt.t

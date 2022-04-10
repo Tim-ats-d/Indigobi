@@ -1,3 +1,5 @@
 (library
  (name component)
- (libraries config common lambda-term gemini unix ssl))
+ (preprocess
+  (pps ppx_sexp_conv))
+ (libraries config common directories lambda-term gemini unix sexplib ssl))

@@ -7,6 +7,7 @@ module type S = sig
   val h2 : style
   val h3 : style
   val prompt : style
+  val warning : style
   val error : style
 end
 
@@ -21,5 +22,6 @@ module Default : S = struct
   let h2 = LTerm_style.{ none with foreground = Some Color.dark_green }
   let h3 = LTerm_style.{ none with foreground = Some Color.dark_blue }
   let prompt = LTerm_style.{ none with foreground = Some Color.purple }
+  let warning = LTerm_style.{ none with foreground = Some Color.orange }
   let error = LTerm_style.{ none with foreground = Some Color.dark_red }
 end

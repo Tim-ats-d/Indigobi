@@ -1,7 +1,8 @@
 module type S = sig
   val stylize_gemini : Gemini.Text.line -> LTerm_text.t
-  val stylize_error : string -> LTerm_text.t
   val stylize_prompt : string -> LTerm_text.t
+  val stylize_warning : string -> LTerm_text.t
+  val stylize_error : string -> LTerm_text.t
 end
 
 module Make (Theme : Config.Theme.S) : S = struct
@@ -54,4 +55,5 @@ module Make (Theme : Config.Theme.S) : S = struct
 
   let stylize_error = Fun.flip LTerm_text.stylise Theme.error
   let stylize_prompt meta = LTerm_text.stylise (meta ^ " ") Theme.prompt
+  let stylize_warning = Fun.flip LTerm_text.stylise Theme.warning
 end
