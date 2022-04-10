@@ -2,7 +2,6 @@ module type S = sig
   val handle_text : ?typ:string -> string -> unit Lwt.t
   val handle_gemini : Gemini.Text.t -> unit Lwt.t
   val handle_other : string -> string -> unit Lwt.t
-  val handle_warning : Common.Warning.t -> unit Lwt.t
 
   val handle_err :
     [< `GeminiErr of Gemini.Status.err | `CommonErr of Common.Err.t ] ->
@@ -26,12 +25,6 @@ module Make (Printer : Printer.S) : S = struct
     Lwt_list.iter_s print_line lines
 
   let handle_other _ _ = Lwt.return @@ failwith "todo: non-text format"
-
-  let handle_warning warn =
-    let msg = "Warning: " ^ Common.Warning.show warn in
-    let* term = Lazy.force LTerm.stderr in
-    let* () = LTerm.fprintls term @@ Printer.stylize_warning msg in
-    LTerm.flush term
 
   let handle_err err =
     let msg =

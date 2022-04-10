@@ -1,4 +1,5 @@
-type t = Search of search
+type t = History of hist | Search of search
+and hist = { mutable regexp : string option }
 
 and search = {
   mutable adresss : string option;
@@ -13,6 +14,14 @@ end
 
 module Default : S = struct
   let search = { adresss = None; raw = false; certificate = "" }
+  let hist = { regexp = None }
+
+  let specs_hist =
+    [
+      ( "--regex",
+        Arg.String (fun r -> hist.regexp <- Some r),
+        "Print history entries that match regex" );
+    ]
 
   let specs_search =
     [
@@ -23,7 +32,7 @@ module Default : S = struct
     ]
 
   let speclist = ref []
-  let sub_cmd : [ `Search ] option ref = ref None
+  let sub_cmd : [ `History | `Search ] option ref = ref None
 
   exception UnknownSubCmd of string
 
@@ -32,6 +41,9 @@ module Default : S = struct
         sub_cmd := Some `Search;
         speclist := specs_search;
         search.adresss <- Some Sys.argv.(2)
+    | "history" ->
+        sub_cmd := Some `History;
+        speclist := specs_hist
     | other when Sys.argv.(1) <> "search" ->
         raise_notrace @@ UnknownSubCmd other
     | _ -> ()
@@ -43,6 +55,7 @@ module Default : S = struct
     let error_msg () =
       match !sub_cmd with
       | None -> Error (`Usage (Arg.usage_string !speclist usage_msg))
+      | Some `History -> Ok (History hist)
       | Some `Search -> Ok (Search search)
     in
     try

@@ -1,4 +1,5 @@
-type t = Search of search
+type t = History of hist | Search of search
+and hist = { mutable regexp : string option }
 
 and search = {
   mutable adresss : string option;
