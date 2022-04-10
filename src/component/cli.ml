@@ -18,7 +18,7 @@ module Default : S = struct
 
   let specs_hist =
     [
-      ( "--regex",
+      ( "-r",
         Arg.String (fun r -> hist.regexp <- Some r),
         "Print history entries that match regex" );
     ]
@@ -41,10 +41,10 @@ module Default : S = struct
         sub_cmd := Some `Search;
         speclist := specs_search;
         search.adresss <- Some Sys.argv.(2)
-    | "history" ->
+    | "hist" ->
         sub_cmd := Some `History;
         speclist := specs_hist
-    | other when Sys.argv.(1) <> "search" ->
+    | other when Sys.argv.(1) <> "hist" || Sys.argv.(1) <> "search" ->
         raise_notrace @@ UnknownSubCmd other
     | _ -> ()
 
