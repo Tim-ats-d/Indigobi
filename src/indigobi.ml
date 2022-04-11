@@ -1,4 +1,5 @@
-module Component = Component
+module Back = Back
+module Front = Front
 module Common = Common
 module Gemini = Gemini
 

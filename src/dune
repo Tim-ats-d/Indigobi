@@ -1,4 +1,4 @@
 (library
  (name indigobi)
  (modules_without_implementation import)
- (libraries component gemini lambda-term))
+ (libraries back front gemini lambda-term))

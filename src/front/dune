@@ -1,0 +1,3 @@
+(library
+ (name front)
+ (libraries common config gemini lambda-term))

@@ -1,5 +1,0 @@
-(library
- (name component)
- (preprocess
-  (pps ppx_sexp_conv))
- (libraries config common lambda-term gemini unix sexplib ssl))
