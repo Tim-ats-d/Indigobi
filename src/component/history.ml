@@ -5,10 +5,9 @@ end
 module type ENTRY = sig
   type t
 
-  val to_string : t -> string
-  val show : t -> string
-  val sexp_of_t : t -> Sexplib.Type.t
-  val t_of_sexp : Sexplib.Type.t -> t
+  include Common.Types.STRINGABLE with type t := t
+  include Common.Types.SHOWABLE with type t := t
+  include Common.Types.SEXPABLE with type t := t
 end
 
 module type BASE_HIST = sig

@@ -13,7 +13,7 @@ module Make (Printer : Printer.S) = struct
     let* () = LTerm.fprints term @@ Printer.stylize_prompt meta in
     let* () = LTerm.flush term in
     let user_input =
-      Zed_string.to_utf8 @@ (new LTerm_read_line.read_line ())#eval
+      Zed_string.to_utf8 (new LTerm_read_line.read_line ())#eval
     in
     let* () = LTerm.clear_line_prev term in
     Lwt.return @@ user_input

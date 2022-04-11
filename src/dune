@@ -1,6 +1,4 @@
 (library
  (name indigobi)
  (modules_without_implementation import)
- (preprocess
-  (pps ppx_sexp_conv))
- (libraries component gemini lambda-term sexplib))
+ (libraries component gemini lambda-term))

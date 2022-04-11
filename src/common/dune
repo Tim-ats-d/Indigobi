@@ -1,3 +1,4 @@
 (library
  (name common)
- (libraries directories str))
+ (modules_without_implementation types)
+ (libraries directories sexplib str))
