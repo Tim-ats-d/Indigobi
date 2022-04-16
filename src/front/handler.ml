@@ -9,18 +9,20 @@ module type S = sig
 end
 
 module Make (Printer : Printer.S) : S = struct
-  let handle_text ?typ = Lwt_io.printl [@@warning "-27"]
-
   open Lwt.Syntax
+
+  let with_term ic f =
+    let* term = Lazy.force ic in
+    let* () = f term in
+    LTerm.flush term
+
+  let handle_text ?typ = LTerm.printl [@@warning "-27"]
 
   let handle_gemini lines =
     let print_line line =
-      let* term = Lazy.force LTerm.stdout in
-      let* () =
-        try LTerm.fprintls term @@ Printer.stylize_gemini line
-        with Zed_string.Invalid (_, text) -> LTerm.printl text
-      in
-      LTerm.flush term
+      with_term LTerm.stdout (fun term ->
+          try LTerm.fprintls term @@ Printer.stylize_gemini line
+          with Zed_string.Invalid (_, text) -> LTerm.printl text)
     in
     Lwt_list.iter_s print_line lines
 
@@ -32,7 +34,6 @@ module Make (Printer : Printer.S) : S = struct
       | `GeminiErr g -> Printf.sprintf "Gemini error: %a" Gemini.Status.pp g
       | `CommonErr err -> Printf.sprintf "Error: %a" Common.Err.pp err
     in
-    let* term = Lazy.force LTerm.stderr in
-    let* () = LTerm.fprintls term @@ Printer.stylize_error msg in
-    LTerm.flush term
+    with_term LTerm.stderr (fun term ->
+        LTerm.fprintls term @@ Printer.stylize_error msg)
 end

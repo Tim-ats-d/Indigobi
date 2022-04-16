@@ -13,9 +13,12 @@ end
 module type BASE_HIST = sig
   type entry
 
+  val get_entries : unit -> entry list
   val add_entry : entry -> unit
-  val iter_s : (entry -> unit Lwt.t) -> unit Lwt.t
-  val search_from_regex : string -> entry list Lwt.t
+  val search_from_regex : string -> entry list
+  val del_from_regex : string -> unit
+
+  include Common.Types.SHOWABLE with type t := entry list
 end
 
 module MakeBase (Path : PATH) (Entry : ENTRY) :
@@ -29,7 +32,7 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
     output_string oc "()";
     close_out oc
 
-  let load () =
+  let get_entries () =
     try
       Slib.Sexp.load_sexp Path.path |> Slib.Conv.list_of_sexp Entry.t_of_sexp
     with
@@ -38,17 +41,24 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
         create_hist_file ();
         []
 
-  let save t =
+  let save_entries t =
     Slib.Conv.sexp_of_list Entry.sexp_of_t t |> Slib.Sexp.save_mach Path.path
 
-  let add_entry entry = entry :: load () |> save
-  let iter_s f = Lwt_list.iter_s f @@ load ()
+  let add_entry e = e :: get_entries () |> save_entries
 
   let search_from_regex re =
     let regexp = Str.regexp re in
-    Lwt_list.filter_s (fun e ->
-        Lwt.return @@ Str.string_match regexp (Entry.to_string e) 0)
-    @@ load ()
+    get_entries ()
+    |> List.filter (fun e -> Str.string_match regexp (Entry.to_string e) 0)
+
+  let del_from_regex re =
+    let regexp = Str.regexp re in
+    get_entries ()
+    |> List.filter (fun e ->
+           not @@ Str.string_match regexp (Entry.to_string e) 0)
+    |> save_entries
+
+  let show entries = List.map Entry.show entries |> String.concat "\n"
 end
 
 module type S = BASE_HIST with type entry := string

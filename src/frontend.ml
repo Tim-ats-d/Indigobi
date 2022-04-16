@@ -6,8 +6,6 @@ end
 
 module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   S = struct
-  open Lwt.Syntax
-
   let make_history () : (module History.S) =
     match Dir.cache_dir with
     | None -> failwith "No history path"
@@ -22,18 +20,18 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     match ArgParser.parse () with
     | Error (`UnknownSubCmd _ as err) -> Handler.handle_err @@ `CommonErr err
     | Error (`Usage msg) -> Handler.handle_text msg
-    | Ok (History { regexp }) -> history_search regexp
+    | Ok (History { mode }) -> (
+        match mode with
+        | `Del re -> Lwt.return @@ Hist.del_from_regex re
+        | `Display -> hist_display ()
+        | `Search re -> hist_search re)
     | Ok (Search { adresss; raw; certificate }) ->
         search ~adresss ~raw ~certificate
 
-  and history_search = function
-    | None ->
-        let* () = Hist.iter_s (fun e -> Lwt_io.printf "%s\n" e) in
-        Lwt_io.(flush stdout)
-    | Some re ->
-        let* entries = Hist.search_from_regex re in
-        let* () = Lwt_list.iter_s (fun e -> Lwt_io.printf "%s\n" e) entries in
-        Lwt_io.(flush stdout)
+  and hist_display () = LTerm.printlf "%s%!" @@ Hist.(show @@ get_entries ())
+
+  and hist_search re =
+    LTerm.printlf "%s%!" @@ Hist.(show @@ search_from_regex re)
 
   and search ~adresss ~raw ~certificate =
     match adresss with

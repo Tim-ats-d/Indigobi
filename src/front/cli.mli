@@ -1,5 +1,5 @@
 type t = History of hist | Search of search
-and hist = { mutable regexp : string option }
+and hist = { mutable mode : [ `Del of string | `Display | `Search of string ] }
 
 and search = {
   mutable adresss : string option;

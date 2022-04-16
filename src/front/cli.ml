@@ -1,5 +1,5 @@
 type t = History of hist | Search of search
-and hist = { mutable regexp : string option }
+and hist = { mutable mode : [ `Del of string | `Display | `Search of string ] }
 
 and search = {
   mutable adresss : string option;
@@ -14,13 +14,16 @@ end
 
 module Default : S = struct
   let search = { adresss = None; raw = false; certificate = "" }
-  let hist = { regexp = None }
+  let hist = { mode = `Display }
 
   let specs_hist =
     [
       ( "-r",
-        Arg.String (fun r -> hist.regexp <- Some r),
+        Arg.String (fun r -> hist.mode <- `Search r),
         "Print history entries that match regex" );
+      ( "-d",
+        Arg.String (fun r -> hist.mode <- `Del r),
+        "Delete history entries that match regex" );
     ]
 
   let specs_search =
@@ -36,16 +39,20 @@ module Default : S = struct
 
   exception UnknownSubCmd of string
 
-  let anon_fun = function
-    | "search" ->
-        sub_cmd := Some `Search;
-        speclist := specs_search;
-        search.adresss <- Some Sys.argv.(2)
-    | "hist" ->
-        sub_cmd := Some `History;
-        speclist := specs_hist
-    | other when Sys.argv.(1) <> "hist" || Sys.argv.(1) <> "search" ->
-        raise_notrace @@ UnknownSubCmd other
+  let anon_fun str =
+    match !sub_cmd with
+    | None -> (
+        match str with
+        | "search" ->
+            sub_cmd := Some `Search;
+            speclist := specs_search;
+            search.adresss <- Some Sys.argv.(2)
+        | "hist" ->
+            sub_cmd := Some `History;
+            speclist := specs_hist
+        | other when Sys.argv.(1) <> "hist" || Sys.argv.(1) <> "search" ->
+            raise_notrace @@ UnknownSubCmd other
+        | _ -> ())
     | _ -> ()
 
   let parse () =
