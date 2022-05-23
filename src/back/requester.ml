@@ -19,7 +19,15 @@ module Default : S = struct
      Ssl.use_certificate_from_string ctx
        (Str.replace_first cert_re "\\1" req.G.Request.cert)
        (Str.replace_first cert_re "\\2" req.G.Request.cert));
-    Ssl.open_connection_with_context ctx req.G.Request.addr.ai_addr
+    let socket =
+      Unix.(
+        socket (domain_of_sockaddr req.G.Request.addr.ai_addr) SOCK_STREAM 0)
+    in
+    Unix.connect socket req.G.Request.addr.ai_addr;
+    let ssl = Ssl.embed_socket socket ctx in
+    Ssl.set_client_SNI_hostname ssl req.G.Request.host;
+    Ssl.connect ssl;
+    ssl
 
   let close = Ssl.shutdown_connection
 

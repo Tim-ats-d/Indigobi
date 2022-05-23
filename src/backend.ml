@@ -52,11 +52,10 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                       close_in ch;
                       s
                   in
-                  match G.Request.create url ~addr ~cert:cert_str with
+                  match G.Request.create url ~addr ~host ~cert:cert_str with
                   | None -> Error `MalformedLink
                   | Some r -> request r
                 with Unix.Unix_error _ -> Error `NotFound)
             | Error _ as err -> err)
-          (Error `NotFound)
-          address
+          (Error `NotFound) address
 end
