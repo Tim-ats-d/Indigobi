@@ -28,12 +28,15 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
             let body = Requester.parse_body socket in
             Requester.close socket;
             Ok (Mime.parse meta, body)
-        | `Redirect _ -> failwith "todo: redirection"
+        | `Redirect (meta, _) ->
+            get
+              ~url:Urllib.(parse meta req.host |> to_string)
+              ~host:req.host ~port:req.port ~cert:req.cert
         | ( `TemporaryFailure _ | `PermanentFailure _
           | `ClientCertificateRequired _ ) as err ->
             Error err)
 
-  let get ~url ~host ~port ~cert =
+  and get ~url ~host ~port ~cert =
     Ssl.init ();
     match Unix.getaddrinfo host (Int.to_string port) [] with
     | [] -> Error `UnknownHostOrServiceName
@@ -52,7 +55,9 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                       close_in ch;
                       s
                   in
-                  match G.Request.create url ~addr ~host ~cert:cert_str with
+                  match
+                    G.Request.create url ~addr ~host ~port ~cert:cert_str
+                  with
                   | None -> Error `MalformedLink
                   | Some r -> request r
                 with Unix.Unix_error _ -> Error `NotFound)

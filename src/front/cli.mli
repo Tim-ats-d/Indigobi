@@ -2,7 +2,7 @@ type t = History of hist | Search of search
 and hist = { mutable mode : [ `Del of string | `Display | `Search of string ] }
 
 and search = {
-  mutable adresss : string option;
+  mutable address : string option;
   mutable raw : bool;
   mutable certificate : string;
 }

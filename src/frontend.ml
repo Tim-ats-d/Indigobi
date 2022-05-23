@@ -25,16 +25,16 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
         | `Del re -> Lwt.return @@ Hist.del_from_regex re
         | `Display -> hist_display ()
         | `Search re -> hist_search re)
-    | Ok (Search { adresss; raw; certificate }) ->
-        search ~adresss ~raw ~certificate
+    | Ok (Search { address; raw; certificate }) ->
+        search ~address ~raw ~certificate
 
   and hist_display () = LTerm.printlf "%s%!" @@ Hist.(show @@ get_entries ())
 
   and hist_search re =
     LTerm.printlf "%s%!" @@ Hist.(show @@ search_from_regex re)
 
-  and search ~adresss ~raw ~certificate =
-    match adresss with
+  and search ~address ~raw ~certificate =
+    match address with
     | None -> Handler.handle_err @@ `CommonErr `NoUrlProvided
     | Some adrr -> (
         Hist.add_entry adrr;

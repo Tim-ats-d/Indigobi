@@ -9,7 +9,7 @@ type err =
 type t =
   [ `Input of string * [ `Sensitive of bool ]
   | `Success
-  | `Redirect of [ `Temporary | `Permanent ]
+  | `Redirect of string * [ `Temporary | `Permanent ]
   | err ]
 
 val of_int : string -> int -> t

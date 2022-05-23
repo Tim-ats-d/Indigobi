@@ -51,9 +51,12 @@ let parse url host =
   in
   {
     scheme;
-    domain = (if domain = "" then host else domain);
+    domain =
+      (if (host <> "" && domain <> host) || domain = "" then host else domain);
     port = (if port = -1 then 1965 else port);
-    path;
+    path =
+      (if host <> "" && domain <> host && path = "/" then "/" ^ domain
+      else path);
     query;
   }
 

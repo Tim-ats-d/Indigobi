@@ -75,4 +75,26 @@ let pass () =
           query = "gemini";
         })
   in
+  let _ =
+    assert (
+      parse "tructruc.gmi" "geminispace.info"
+      = {
+          scheme = "gemini";
+          domain = "geminispace.info";
+          port = 1965;
+          path = "/tructruc.gmi";
+          query = "";
+        })
+  in
+  let _ =
+    assert (
+      parse "tructruc.xyz" ""
+      = {
+          scheme = "gemini";
+          domain = "tructruc.xyz";
+          port = 1965;
+          path = "/";
+          query = "";
+        })
+  in
   ()

@@ -9,15 +9,15 @@ type err =
 type t =
   [ `Input of string * [ `Sensitive of bool ]
   | `Success
-  | `Redirect of [ `Temporary | `Permanent ]
+  | `Redirect of string * [ `Temporary | `Permanent ]
   | err ]
 
 let of_int meta = function
   | 10 -> `Input (meta, `Sensitive false)
   | 11 -> `Input (meta, `Sensitive true)
   | 20 -> `Success
-  | 30 -> `Redirect `Temporary
-  | 31 -> `Redirect `Permanent
+  | 30 -> `Redirect (meta, `Temporary)
+  | 31 -> `Redirect (meta, `Permanent)
   | 40 -> `TemporaryFailure (meta, `None)
   | 41 -> `TemporaryFailure (meta, `ServerUnavailable)
   | 42 -> `TemporaryFailure (meta, `CgiError)

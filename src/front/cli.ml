@@ -2,7 +2,7 @@ type t = History of hist | Search of search
 and hist = { mutable mode : [ `Del of string | `Display | `Search of string ] }
 
 and search = {
-  mutable adresss : string option;
+  mutable address : string option;
   mutable raw : bool;
   mutable certificate : string;
 }
@@ -13,7 +13,7 @@ module type S = sig
 end
 
 module Default : S = struct
-  let search = { adresss = None; raw = false; certificate = "" }
+  let search = { address = None; raw = false; certificate = "" }
   let hist = { mode = `Display }
 
   let specs_hist =
@@ -46,7 +46,7 @@ module Default : S = struct
         | "search" ->
             sub_cmd := Some `Search;
             speclist := specs_search;
-            search.adresss <- Some Sys.argv.(2)
+            search.address <- Some Sys.argv.(2)
         | "hist" ->
             sub_cmd := Some `History;
             speclist := specs_hist
