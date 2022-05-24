@@ -15,8 +15,10 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
     match
       G.Request.to_string req |> Requester.fetch_header socket |> G.Header.parse
     with
-    | None -> Error `MalformedServerResponse
-    | Some { status; meta } -> (
+    | Error (`MalformedHeader | `TooLongHeader) ->
+        Error `MalformedServerResponse
+    | Error ((`GracefulFail | `InvalidStatusCode _) as err) -> Error err
+    | Ok { status; meta } -> (
         match status with
         | `Input (meta, `Sensitive s) ->
             let input =
@@ -30,7 +32,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
             Ok (Mime.parse meta, body)
         | `Redirect (meta, _) ->
             get
-              ~url:Urllib.(parse meta req.host |> to_string)
+              ~url:Urllib.(to_string @@ parse meta req.host)
               ~host:req.host ~port:req.port ~cert:req.cert
         | ( `TemporaryFailure _ | `PermanentFailure _
           | `ClientCertificateRequired _ ) as err ->

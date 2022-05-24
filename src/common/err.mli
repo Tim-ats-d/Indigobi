@@ -1,7 +1,10 @@
 type front = [ `UnknownSubCmd of string | `NoUrlProvided ]
+type status_code = [ `GracefulFail | `InvalidStatusCode of int ]
+type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 
 type back =
-  [ `MalformedLink
+  [ status_code
+  | `MalformedLink
   | `MalformedServerResponse
   | `NotFound
   | `UnknownHostOrServiceName ]

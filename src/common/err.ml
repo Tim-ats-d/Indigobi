@@ -1,19 +1,23 @@
 type front = [ `UnknownSubCmd of string | `NoUrlProvided ]
+type status_code = [ `GracefulFail | `InvalidStatusCode of int ]
+type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 
 type back =
-  [ `MalformedLink
+  [ status_code
+  | `MalformedLink
   | `MalformedServerResponse
   | `NotFound
   | `UnknownHostOrServiceName ]
 
 type t = [ front | back ]
 
-let pp () =
-  let fmt = Printf.sprintf in
-  function
-  | `MalformedLink -> fmt "malformed link"
-  | `MalformedServerResponse -> fmt "mal formed server response"
-  | `NotFound -> fmt "not found"
-  | `NoUrlProvided -> fmt "no url is provided"
-  | `UnknownHostOrServiceName -> fmt "unknown host or service name"
-  | `UnknownSubCmd sub_cmd -> fmt "unknown sub command %S" sub_cmd
+let pp () = function
+  | `GracefulFail -> "graceful fail: server returns 99 status code"
+  | `InvalidStatusCode code ->
+      Printf.sprintf "server returns invalid status code \"%i\"" code
+  | `MalformedLink -> "malformed link"
+  | `MalformedServerResponse -> "mal formed server response"
+  | `NotFound -> "not found"
+  | `NoUrlProvided -> "no url is provided"
+  | `UnknownHostOrServiceName -> "unknown host or service name"
+  | `UnknownSubCmd sub_cmd -> Printf.sprintf "unknown sub command %S" sub_cmd

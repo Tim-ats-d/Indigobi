@@ -12,5 +12,5 @@ type t =
   | `Redirect of string * [ `Temporary | `Permanent ]
   | err ]
 
-val of_int : string -> int -> t
+val from_int : string -> int -> (t, Common.Err.status_code) result
 val pp : unit -> err -> string

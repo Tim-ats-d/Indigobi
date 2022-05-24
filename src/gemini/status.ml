@@ -12,26 +12,27 @@ type t =
   | `Redirect of string * [ `Temporary | `Permanent ]
   | err ]
 
-let of_int meta = function
-  | 10 -> `Input (meta, `Sensitive false)
-  | 11 -> `Input (meta, `Sensitive true)
-  | 20 -> `Success
-  | 30 -> `Redirect (meta, `Temporary)
-  | 31 -> `Redirect (meta, `Permanent)
-  | 40 -> `TemporaryFailure (meta, `None)
-  | 41 -> `TemporaryFailure (meta, `ServerUnavailable)
-  | 42 -> `TemporaryFailure (meta, `CgiError)
-  | 43 -> `TemporaryFailure (meta, `ProxyError)
-  | 44 -> `TemporaryFailure (meta, `SlowDown)
-  | 50 -> `PermanentFailure (meta, `None)
-  | 51 -> `PermanentFailure (meta, `NotFound)
-  | 52 -> `PermanentFailure (meta, `Gone)
-  | 53 -> `PermanentFailure (meta, `ProxyRequestRefused)
-  | 59 -> `PermanentFailure (meta, `BadRequest)
-  | 60 -> `ClientCertificateRequired (meta, `None)
-  | 61 -> `ClientCertificateRequired (meta, `CertificateNotAuthorised)
-  | 62 -> `ClientCertificateRequired (meta, `CertificateNotValid)
-  | _ -> raise @@ Invalid_argument "Status.of_int"
+let from_int meta = function
+  | 10 -> Ok (`Input (meta, `Sensitive false))
+  | 11 -> Ok (`Input (meta, `Sensitive true))
+  | 20 -> Ok `Success
+  | 30 -> Ok (`Redirect (meta, `Temporary))
+  | 31 -> Ok (`Redirect (meta, `Permanent))
+  | 40 -> Ok (`TemporaryFailure (meta, `None))
+  | 41 -> Ok (`TemporaryFailure (meta, `ServerUnavailable))
+  | 42 -> Ok (`TemporaryFailure (meta, `CgiError))
+  | 43 -> Ok (`TemporaryFailure (meta, `ProxyError))
+  | 44 -> Ok (`TemporaryFailure (meta, `SlowDown))
+  | 50 -> Ok (`PermanentFailure (meta, `None))
+  | 51 -> Ok (`PermanentFailure (meta, `NotFound))
+  | 52 -> Ok (`PermanentFailure (meta, `Gone))
+  | 53 -> Ok (`PermanentFailure (meta, `ProxyRequestRefused))
+  | 59 -> Ok (`PermanentFailure (meta, `BadRequest))
+  | 60 -> Ok (`ClientCertificateRequired (meta, `None))
+  | 61 -> Ok (`ClientCertificateRequired (meta, `CertificateNotAuthorised))
+  | 62 -> Ok (`ClientCertificateRequired (meta, `CertificateNotValid))
+  | 99 -> Error `GracefulFail
+  | code -> Error (`InvalidStatusCode code)
 
 let pp () =
   let fmt = Printf.sprintf in
