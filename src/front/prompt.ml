@@ -12,11 +12,9 @@ module Make (Printer : Printer.S) = struct
     let* term = Lazy.force LTerm.stdout in
     let* () = LTerm.fprints term @@ Printer.stylize_prompt meta in
     let* () = LTerm.flush term in
-    let user_input =
-      Zed_string.to_utf8 (new LTerm_read_line.read_line ())#eval
-    in
+    let* user_input = Lwt_io.(read_line stdin) in
     let* () = LTerm.clear_line_prev term in
-    Lwt.return @@ user_input
+    Lwt.return @@ Urllib.encode @@ user_input
 
   class hidden_read ~prompt term =
     object (self)
@@ -26,7 +24,7 @@ module Make (Printer : Printer.S) = struct
 
       method! send_action =
         function
-        | LTerm_read_line.Break -> () | action -> super#send_action action
+        | LTerm_read_line.Break -> exit 130 | action -> super#send_action action
     end
 
   let prompt_sensitive meta =
@@ -35,7 +33,6 @@ module Make (Printer : Printer.S) = struct
       (new hidden_read ~prompt:(Printer.stylize_prompt meta) term)#run
     in
     let* () = LTerm.flush term in
-    let user_input = Zed_string.to_utf8 input |> Urllib.encode in
     let* () = LTerm.clear_line_prev term in
-    Lwt.return user_input
+    Lwt.return @@ Urllib.encode @@ Zed_string.to_utf8 input
 end
