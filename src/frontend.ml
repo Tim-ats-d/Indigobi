@@ -15,6 +15,7 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
         end))
 
   module Hist = (val make_history ())
+  open Lwt.Syntax
 
   let rec launch () =
     match ArgParser.parse () with
@@ -39,16 +40,17 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     | Some adrr -> (
         Hist.add_entry adrr;
         let url = Urllib.parse adrr "" in
-        match
+        let* result =
           Backend.get ~url:(Urllib.to_string url) ~host:url.domain
             ~port:url.port ~cert:certificate
-        with
-        | Ok ({ Mime.media_type = `Gemini; _ }, body) ->
+        in
+        match result with
+        | Ok ({ Mime.media_type = Gemini; _ }, body) ->
             if raw then Handler.handle_text body
             else Handler.handle_gemini @@ Gemini.Text.parse body
-        | Ok ({ Mime.media_type = `Text txt; _ }, body) ->
+        | Ok ({ Mime.media_type = Text txt; _ }, body) ->
             Handler.handle_text body ~typ:txt
-        | Ok ({ Mime.media_type = `Other o; _ }, body) ->
+        | Ok ({ Mime.media_type = Other o; _ }, body) ->
             Handler.handle_other o body
         | Error (#G.Status.err as e) -> Handler.handle_err @@ `GeminiErr e
         | Error (#Err.t as e) -> Handler.handle_err @@ `CommonErr e)

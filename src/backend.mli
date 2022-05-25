@@ -4,7 +4,9 @@ module type S = sig
     host:string ->
     port:int ->
     cert:string ->
-    (Back.Mime.t * string, [> Common.Err.back | Gemini.Status.err ]) result
+    ( Back.Mime.t * string,
+      [> Common.Err.back | Gemini.Status.err ] )
+    Lwt_result.t
 end
 
 module Make : functor

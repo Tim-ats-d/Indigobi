@@ -6,63 +6,71 @@ module type S = sig
     host:string ->
     port:int ->
     cert:string ->
-    (Mime.t * string, [> Err.back | G.Status.err ]) result
+    (Mime.t * string, [> Err.back | G.Status.err ]) Lwt_result.t
 end
 
 module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
+  open Lwt.Syntax
+
   let rec request req =
-    let socket = Requester.init req in
-    match
-      G.Request.to_string req |> Requester.fetch_header socket |> G.Header.parse
-    with
+    let* socket = Requester.init req in
+    let* header = Requester.fetch_header socket @@ G.Request.to_string req in
+    match G.Header.parse header with
     | Error (`MalformedHeader | `TooLongHeader) ->
-        Error `MalformedServerResponse
-    | Error ((`GracefulFail | `InvalidStatusCode _) as err) -> Error err
+        Lwt_result.fail `MalformedServerResponse
+    | Error ((`GracefulFail | `InvalidStatusCode _) as err) ->
+        Lwt_result.fail err
     | Ok { status; meta } -> (
         match status with
         | `Input (meta, `Sensitive s) ->
-            let input =
-              Lwt_main.run
-              @@ if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
+            let* input =
+              if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
             in
             request @@ G.Request.attach_input req input
         | `Success ->
-            let body = Requester.parse_body socket in
+            let* body = Requester.parse_body socket in
             Requester.close socket;
-            Ok (Mime.parse meta, body)
+            Lwt_result.ok @@ Lwt.return (Mime.parse meta, body)
         | `Redirect (meta, _) ->
             get
               ~url:Urllib.(to_string @@ parse meta req.host)
               ~host:req.host ~port:req.port ~cert:req.cert
         | ( `TemporaryFailure _ | `PermanentFailure _
           | `ClientCertificateRequired _ ) as err ->
-            Error err)
+            Lwt_result.fail err)
 
   and get ~url ~host ~port ~cert =
     Ssl.init ();
-    match Unix.getaddrinfo host (Int.to_string port) [] with
-    | [] -> Error `UnknownHostOrServiceName
+    let* adresses = Lwt_unix.getaddrinfo host (Int.to_string port) [] in
+    match adresses with
+    | [] -> Lwt_result.fail `UnknownHostOrServiceName
     | address ->
-        List.fold_left
-          (fun acc addr ->
-            match acc with
-            | Ok _ as ok -> ok
-            | Error `NotFound -> (
-                try
-                  let cert_str =
-                    if cert = "" then ""
+        let f (acc : (Mime.t * string, [> Err.back | G.Status.err ]) result)
+            (addr : Unix.addr_info) :
+            (Mime.t * string, [> Err.back | G.Status.err ]) Lwt_result.t =
+          match acc with
+          | Ok _ as ok -> Lwt.return ok
+          | Error `NotFound ->
+              Lwt.catch
+                (fun () ->
+                  let* cert_str =
+                    if cert = "" then Lwt.return ""
                     else
-                      let ch = open_in cert in
-                      let s = really_input_string ch @@ in_channel_length ch in
-                      close_in ch;
-                      s
+                      Lwt_io.with_file ~mode:Input cert (fun _ic ->
+                          Lwt.return "foo")
+                    (* TODO *)
                   in
                   match
                     G.Request.create url ~addr ~host ~port ~cert:cert_str
                   with
-                  | None -> Error `MalformedLink
-                  | Some r -> request r
-                with Unix.Unix_error _ -> Error `NotFound)
-            | Error _ as err -> err)
-          (Error `NotFound) address
+                  | None -> Lwt_result.fail `MalformedLink
+                  | Some r -> request r)
+                (function
+                  | Unix.Unix_error _ -> Lwt_result.fail `NotFound
+                  | exn -> Lwt.fail exn)
+          | Error err ->
+              print_endline "ok";
+              Lwt_result.fail (err :> [> Err.back | G.Status.err ])
+        in
+        Lwt_list.fold_left_s f (Error `NotFound) address
 end

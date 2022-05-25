@@ -1,13 +1,15 @@
 module G = Gemini
 
 module type S = sig
-  val init : G.Request.t -> Ssl.socket
-  val close : Ssl.socket -> unit
-  val fetch_header : Ssl.socket -> string -> string
-  val parse_body : Ssl.socket -> string
+  val init : G.Request.t -> Lwt_ssl.socket Lwt.t
+  val close : Lwt_ssl.socket -> unit
+  val fetch_header : Lwt_ssl.socket -> string -> string Lwt.t
+  val parse_body : Lwt_ssl.socket -> string Lwt.t
 end
 
 module Default : S = struct
+  open Lwt.Syntax
+
   let init req =
     let ctx = Ssl.create_context TLSv1_2 Client_context in
     (if req.G.Request.cert <> "" then
@@ -20,35 +22,54 @@ module Default : S = struct
        (Str.replace_first cert_re "\\1" req.G.Request.cert)
        (Str.replace_first cert_re "\\2" req.G.Request.cert));
     let socket =
-      Unix.(
-        socket (domain_of_sockaddr req.G.Request.addr.ai_addr) SOCK_STREAM 0)
+      Lwt_unix.socket
+        (Unix.domain_of_sockaddr req.G.Request.addr.ai_addr)
+        SOCK_STREAM 0
     in
-    Unix.connect socket req.G.Request.addr.ai_addr;
-    let ssl = Ssl.embed_socket socket ctx in
-    Ssl.set_client_SNI_hostname ssl req.G.Request.host;
-    Ssl.connect ssl;
-    ssl
+    let* () = Lwt_unix.connect socket req.G.Request.addr.ai_addr in
+    let* ssl = Lwt_ssl.ssl_connect socket ctx in
+    Ssl.set_client_SNI_hostname
+      (Option.get @@ Lwt_ssl.ssl_socket ssl)
+      req.G.Request.host;
+    Lwt.return ssl
 
-  let close = Ssl.shutdown_connection
+  let close socket = Lwt_ssl.shutdown socket Lwt_unix.SHUTDOWN_ALL
+
+  let input_char ssl =
+    let tmp = Lwt_bytes.create 1 in
+    let* chr = Lwt_ssl.read ssl (Lwt_bytes.to_bytes tmp) 0 1 in
+    if chr <> 1 then raise End_of_file else Lwt.return @@ Lwt_bytes.get tmp 0
 
   let fetch_header socket req =
-    Ssl.output_string socket req;
+    let bytes = String.to_bytes req in
+    let* _ = Lwt_ssl.write socket bytes 0 (Bytes.length bytes) in
     let buf = Buffer.create 4 in
-    for _ = 0 to 1 do
-      (* Status *)
-      Buffer.add_char buf @@ Ssl.input_char socket
-    done;
-    while Buffer.(sub buf (length buf - 2) 2) <> "\r\n" do
-      Buffer.add_char buf @@ Ssl.input_char socket
-    done;
-    Buffer.contents buf
+    let* chr = input_char socket in
+    Buffer.add_char buf chr;
+    let* chr = input_char socket in
+    Buffer.add_char buf chr;
+    let rec input_in () =
+      if String.equal Buffer.(sub buf (length buf - 2) 2) "\r\n" then
+        Lwt.return @@ Buffer.contents buf
+      else
+        let* chr = input_char socket in
+        Buffer.add_char buf chr;
+        input_in ()
+    in
+    input_in ()
 
   let parse_body socket =
     let buf = Buffer.create 512 in
-    try
-      while true do
-        Buffer.add_char buf @@ Ssl.input_char socket
-      done;
-      assert false
-    with Ssl.Read_error Error_zero_return -> Buffer.contents buf
+    let rec input_in () =
+      Lwt.catch
+        (fun () ->
+          let* chr = input_char socket in
+          Buffer.add_char buf chr;
+          input_in ())
+        (function
+          | Ssl.Read_error Error_zero_return ->
+              Lwt.return @@ Buffer.contents buf
+          | exn -> Lwt.fail exn)
+    in
+    input_in ()
 end

@@ -6,5 +6,4 @@ type t = {
 
 and media_type = Gemini | Text of string | Other of string
 
-
 val parse : string -> t
