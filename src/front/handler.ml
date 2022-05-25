@@ -26,7 +26,7 @@ module Make (Printer : Printer.S) : S = struct
     in
     Lwt_list.iter_s print_line lines
 
-  let handle_other _ _ = Lwt.return @@ failwith "todo: non-text format"
+  let handle_other _ _ = failwith "todo: non-text format"
 
   let handle_err err =
     let msg =

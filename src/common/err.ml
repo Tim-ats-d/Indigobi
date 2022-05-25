@@ -1,4 +1,3 @@
-type front = [ `UnknownSubCmd of string | `NoUrlProvided ]
 type status_code = [ `GracefulFail | `InvalidStatusCode of int ]
 type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 
@@ -9,6 +8,7 @@ type back =
   | `NotFound
   | `UnknownHostOrServiceName ]
 
+type front = [ `UnknownSubCmd of string | `NoUrlProvided ]
 type t = [ front | back ]
 
 let pp () = function
