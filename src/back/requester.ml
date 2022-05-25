@@ -2,7 +2,7 @@ module G = Gemini
 
 module type S = sig
   val init : G.Request.t -> Lwt_ssl.socket Lwt.t
-  val close : Lwt_ssl.socket -> unit
+  val close : Lwt_ssl.socket -> unit Lwt.t
   val fetch_header : Lwt_ssl.socket -> string -> string Lwt.t
   val parse_body : Lwt_ssl.socket -> string Lwt.t
 end
@@ -33,11 +33,11 @@ module Default : S = struct
       req.G.Request.host;
     Lwt.return ssl
 
-  let close socket = Lwt_ssl.shutdown socket Lwt_unix.SHUTDOWN_ALL
+  let close socket = Lwt_ssl.close socket
 
   let input_char ssl =
     let tmp = Lwt_bytes.create 1 in
-    let* chr = Lwt_ssl.read ssl (Lwt_bytes.to_bytes tmp) 0 1 in
+    let* chr = Lwt_ssl.read_bytes ssl tmp 0 1 in
     if chr <> 1 then raise End_of_file else Lwt.return @@ Lwt_bytes.get tmp 0
 
   let fetch_header socket req =
@@ -67,7 +67,7 @@ module Default : S = struct
           Buffer.add_char buf chr;
           input_in ())
         (function
-          | Ssl.Read_error Error_zero_return ->
+          | Ssl.Read_error Error_zero_return | End_of_file ->
               Lwt.return @@ Buffer.contents buf
           | exn -> Lwt.fail exn)
     in

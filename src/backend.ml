@@ -29,7 +29,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
             request @@ G.Request.attach_input req input
         | `Success ->
             let* body = Requester.parse_body socket in
-            Requester.close socket;
+            let* () = Requester.close socket in
             Lwt_result.ok @@ Lwt.return (Mime.parse meta, body)
         | `Redirect (meta, _) ->
             get
