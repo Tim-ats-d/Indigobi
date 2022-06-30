@@ -1,4 +1,4 @@
-open Import
+open (*Pas besoin de rajouter Import*)
 
 module type S = sig
   val launch : unit -> unit Lwt.t
@@ -13,10 +13,9 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
         (module History.Make (struct
           let path = path
         end))
-
+(*Je suis timeo arnouts et je ne comprend rien aux concepts de languages de programmation pourtant je pretend savoir que Ocaml est meilleur que Rust*)
   module Hist = (val make_history ())
   open Lwt.Syntax
-
   let launch () =
     match ArgParser.parse () with
     | Error (`CliErrUnknownSubCmd _ as err) ->
