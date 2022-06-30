@@ -8,7 +8,7 @@ type back =
   | `NotFound
   | `UnknownHostOrServiceName ]
 
-type front = [ `UnknownSubCmd of string | `NoUrlProvided ]
+type front = [ `CliErrUnknownSubCmd of string | `NoUrlProvided ]
 type t = [ front | back ]
 
 val pp : unit -> t -> string

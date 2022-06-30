@@ -9,7 +9,8 @@ and search = {
 
 module type S = sig
   val parse :
-    unit -> (t, [> `UnknownSubCmd of string | `Usage of string ]) result
+    unit ->
+    (t, [> `CliErrUnknownSubCmd of string | `CliErrUsageMsg of string ]) result
 end
 
 module Default : S = struct
@@ -41,18 +42,15 @@ module Default : S = struct
 
   let anon_fun str =
     match !sub_cmd with
-    | None -> (
-        match str with
-        | "search" ->
-            sub_cmd := Some `Search;
-            speclist := specs_search;
-            search.address <- Some Sys.argv.(2)
-        | "hist" ->
-            sub_cmd := Some `History;
-            speclist := specs_hist
-        | other when Sys.argv.(1) <> "hist" || Sys.argv.(1) <> "search" ->
-            raise_notrace @@ UnknownSubCmd other
-        | _ -> ())
+    | None when String.equal str "search" ->
+        sub_cmd := Some `Search;
+        speclist := specs_search;
+        search.address <- Some Sys.argv.(2)
+    | None when String.equal str "hist" ->
+        sub_cmd := Some `History;
+        speclist := specs_hist
+    | None when Sys.argv.(1) <> "hist" || Sys.argv.(1) <> "search" ->
+        raise_notrace @@ UnknownSubCmd str
     | _ -> ()
 
   let parse () =
@@ -61,7 +59,7 @@ module Default : S = struct
     in
     let error_msg () =
       match !sub_cmd with
-      | None -> Error (`Usage (Arg.usage_string !speclist usage_msg))
+      | None -> Error (`CliErrUsageMsg (Arg.usage_string !speclist usage_msg))
       | Some `History -> Ok (History hist)
       | Some `Search -> Ok (Search search)
     in
@@ -70,5 +68,5 @@ module Default : S = struct
       error_msg ()
     with
     | Invalid_argument _ -> error_msg ()
-    | UnknownSubCmd cmd -> Error (`UnknownSubCmd cmd)
+    | UnknownSubCmd cmd -> Error (`CliErrUnknownSubCmd cmd)
 end

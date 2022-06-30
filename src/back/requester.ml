@@ -1,7 +1,7 @@
 module G = Gemini
 
 module type S = sig
-  val init : G.Request.t -> Lwt_ssl.socket Lwt.t
+  val init : Gemini.Request.t -> Lwt_ssl.socket Lwt.t
   val close : Lwt_ssl.socket -> unit Lwt.t
   val fetch_header : Lwt_ssl.socket -> string -> string Lwt.t
   val parse_body : Lwt_ssl.socket -> string Lwt.t
@@ -12,25 +12,21 @@ module Default : S = struct
 
   let init req =
     let ctx = Ssl.create_context TLSv1_2 Client_context in
-    (if req.G.Request.cert <> "" then
+    (if req.Gemini.Request.cert <> "" then
      let cert_re =
        Str.regexp
          "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
           \\(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\\)"
      in
      Ssl.use_certificate_from_string ctx
-       (Str.replace_first cert_re "\\1" req.G.Request.cert)
-       (Str.replace_first cert_re "\\2" req.G.Request.cert));
+       (Str.replace_first cert_re "\\1" req.cert)
+       (Str.replace_first cert_re "\\2" req.cert));
     let socket =
-      Lwt_unix.socket
-        (Unix.domain_of_sockaddr req.G.Request.addr.ai_addr)
-        SOCK_STREAM 0
+      Lwt_unix.socket (Unix.domain_of_sockaddr req.addr.ai_addr) SOCK_STREAM 0
     in
-    let* () = Lwt_unix.connect socket req.G.Request.addr.ai_addr in
+    let* () = Lwt_unix.connect socket req.addr.ai_addr in
     let* ssl = Lwt_ssl.ssl_connect socket ctx in
-    Ssl.set_client_SNI_hostname
-      (Option.get @@ Lwt_ssl.ssl_socket ssl)
-      req.G.Request.host;
+    Ssl.set_client_SNI_hostname (Option.get @@ Lwt_ssl.ssl_socket ssl) req.host;
     Lwt.return ssl
 
   let close socket = Lwt_ssl.close socket
@@ -42,7 +38,7 @@ module Default : S = struct
 
   let fetch_header socket req =
     let bytes = String.to_bytes req in
-    let* _ = Lwt_ssl.write socket bytes 0 (Bytes.length bytes) in
+    let* _ = Lwt_ssl.write socket bytes 0 @@ Bytes.length bytes in
     let buf = Buffer.create 4 in
     let* chr = input_char socket in
     Buffer.add_char buf chr;

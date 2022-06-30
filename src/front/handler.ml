@@ -16,7 +16,7 @@ module Make (Printer : Printer.S) : S = struct
     let* () = f term in
     LTerm.flush term
 
-  let handle_text ?typ = LTerm.printl [@@warning "-27"]
+  let[@warning "-27"] handle_text ?typ = LTerm.printl
 
   let handle_gemini lines =
     let print_line line =

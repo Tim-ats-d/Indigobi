@@ -6,7 +6,7 @@ module type S = sig
     host:string ->
     port:int ->
     cert:string ->
-    (Mime.t * string, [> Err.back | G.Status.err ]) Lwt_result.t
+    (Mime.t * string, [> Err.back | Gemini.Status.err ]) Lwt_result.t
 end
 
 module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
@@ -14,19 +14,22 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
 
   let rec request req =
     let* socket = Requester.init req in
-    let* header = Requester.fetch_header socket @@ G.Request.to_string req in
-    match G.Header.parse header with
+    let* header =
+      Requester.fetch_header socket @@ Gemini.Request.to_string req
+    in
+    match Gemini.Header.parse header with
     | Error (`MalformedHeader | `TooLongHeader) ->
         Lwt_result.fail `MalformedServerResponse
     | Error ((`GracefulFail | `InvalidStatusCode _) as err) ->
         Lwt_result.fail err
     | Ok { status; meta } -> (
         match status with
-        | `Input (meta, `Sensitive s) ->
-            let* input =
-              if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
-            in
-            request @@ G.Request.attach_input req input
+        | `Input (meta, `Sensitive true) ->
+            let* input = Prompt.prompt_sensitive meta in
+            request @@ Gemini.Request.attach_input req input
+        | `Input (meta, `Sensitive false) ->
+            let* input = Prompt.prompt meta in
+            request @@ Gemini.Request.attach_input req input
         | `Success ->
             let* body = Requester.parse_body socket in
             let* () = Requester.close socket in
@@ -45,29 +48,23 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
     match adresses with
     | [] -> Lwt_result.fail `UnknownHostOrServiceName
     | address ->
-        let f (acc : (Mime.t * string, [> Err.back | G.Status.err ]) result)
-            (addr : Unix.addr_info) :
-            (Mime.t * string, [> Err.back | G.Status.err ]) Lwt_result.t =
+        let f acc addr =
           match acc with
           | Ok _ as ok -> Lwt.return ok
           | Error `NotFound ->
               Lwt.catch
                 (fun () ->
-                  let* cert_str =
+                  let* cert =
                     if cert = "" then Lwt.return ""
                     else Lwt_io.with_file ~mode:Input cert Lwt_io.read
                   in
-                  match
-                    G.Request.create url ~addr ~host ~port ~cert:cert_str
-                  with
+                  match Gemini.Request.create url ~addr ~host ~port ~cert with
                   | None -> Lwt_result.fail `MalformedLink
                   | Some r -> request r)
                 (function
                   | Unix.Unix_error _ -> Lwt_result.fail `NotFound
                   | exn -> Lwt.fail exn)
-          | Error err ->
-              print_endline "ok";
-              Lwt_result.fail (err :> [> Err.back | G.Status.err ])
+          | Error err -> Lwt_result.fail err
         in
         Lwt_list.fold_left_s f (Error `NotFound) address
 end

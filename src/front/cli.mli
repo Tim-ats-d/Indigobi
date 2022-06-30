@@ -9,7 +9,8 @@ and search = {
 
 module type S = sig
   val parse :
-    unit -> (t, [> `UnknownSubCmd of string | `Usage of string ]) result
+    unit ->
+    (t, [> `CliErrUnknownSubCmd of string | `CliErrUsageMsg of string ]) result
 end
 
 module Default : S

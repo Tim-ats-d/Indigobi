@@ -8,7 +8,7 @@ type back =
   | `NotFound
   | `UnknownHostOrServiceName ]
 
-type front = [ `UnknownSubCmd of string | `NoUrlProvided ]
+type front = [ `CliErrUnknownSubCmd of string | `NoUrlProvided ]
 type t = [ front | back ]
 
 let pp () = function
@@ -20,4 +20,5 @@ let pp () = function
   | `NotFound -> "not found"
   | `NoUrlProvided -> "no url is provided"
   | `UnknownHostOrServiceName -> "unknown host or service name"
-  | `UnknownSubCmd sub_cmd -> Printf.sprintf "unknown sub command %S" sub_cmd
+  | `CliErrUnknownSubCmd sub_cmd ->
+      Printf.sprintf "unknown sub command %S" sub_cmd

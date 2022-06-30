@@ -6,16 +6,15 @@ type t = {
   query : string;
 }
 
-let encode input_str =
-  let convert_char str chr =
-    let new_chr =
-      match chr with
+let encode url =
+  let convert_char buf chr =
+    Buffer.add_string buf
+      (match chr with
       | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> Printf.sprintf "%c" chr
-      | _ -> Printf.sprintf "%%%02X" @@ Char.code chr
-    in
-    str ^ new_chr
+      | _ -> Printf.sprintf "%%%02X" @@ Char.code chr);
+    buf
   in
-  String.fold_left convert_char "" input_str
+  String.fold_left convert_char (Buffer.create 101) url |> Buffer.contents
 
 let parse url host =
   let scheme_re = Str.regexp "\\(.+\\)://\\(.+\\)"
@@ -39,7 +38,7 @@ let parse url host =
       Str.replace_first domain_re "\\2" right_part
       |> Str.replace_first port_re "\\1"
       |> int_of_string
-    else -1
+    else 1965
   and path =
     if Str.string_match path_re right_part 0 then
       Str.replace_first domain_re "\\3" right_part
@@ -53,7 +52,7 @@ let parse url host =
     scheme;
     domain =
       (if (host <> "" && domain <> host) || domain = "" then host else domain);
-    port = (if port = -1 then 1965 else port);
+    port;
     path =
       (if host <> "" && domain <> host && path = "/" then "/" ^ domain
       else path);

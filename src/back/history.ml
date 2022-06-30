@@ -10,11 +10,11 @@ module type ENTRY = sig
   include Common.Types.SEXPABLE with type t := t
 end
 
-module type BASE_HIST = sig
+module type ABSTRACT_HIST = sig
   type entry
 
-  val get_entries : unit -> entry list
-  val add_entry : entry -> unit
+  val get_all : unit -> entry list
+  val push : entry -> unit
   val search_from_regex : string -> entry list
   val del_from_regex : string -> unit
 
@@ -22,7 +22,7 @@ module type BASE_HIST = sig
 end
 
 module MakeBase (Path : PATH) (Entry : ENTRY) :
-  BASE_HIST with type entry = Entry.t = struct
+  ABSTRACT_HIST with type entry = Entry.t = struct
   type entry = Entry.t
 
   module Slib = Sexplib
@@ -32,7 +32,7 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
     output_string oc "()";
     close_out oc
 
-  let get_entries () =
+  let get_all () =
     try
       Slib.Sexp.load_sexp Path.path |> Slib.Conv.list_of_sexp Entry.t_of_sexp
     with
@@ -44,16 +44,16 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
   let save_entries t =
     Slib.Conv.sexp_of_list Entry.sexp_of_t t |> Slib.Sexp.save_mach Path.path
 
-  let add_entry e = e :: get_entries () |> save_entries
+  let push e = e :: get_all () |> save_entries
 
   let search_from_regex re =
     let regexp = Str.regexp re in
-    get_entries ()
+    get_all ()
     |> List.filter (fun e -> Str.string_match regexp (Entry.to_string e) 0)
 
   let del_from_regex re =
     let regexp = Str.regexp re in
-    get_entries ()
+    get_all ()
     |> List.filter (fun e ->
            not @@ Str.string_match regexp (Entry.to_string e) 0)
     |> save_entries
@@ -61,7 +61,7 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
   let show entries = List.map Entry.show entries |> String.concat "\n"
 end
 
-module type S = BASE_HIST with type entry := string
+module type S = ABSTRACT_HIST with type entry := string
 
 module Make (Path : PATH) : S = struct
   open Sexplib.Conv
