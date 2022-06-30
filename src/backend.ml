@@ -55,10 +55,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                 (fun () ->
                   let* cert_str =
                     if cert = "" then Lwt.return ""
-                    else
-                      Lwt_io.with_file ~mode:Input cert (fun _ic ->
-                          Lwt.return "foo")
-                    (* TODO *)
+                    else Lwt_io.with_file ~mode:Input cert Lwt_io.read
                   in
                   match
                     G.Request.create url ~addr ~host ~port ~cert:cert_str
