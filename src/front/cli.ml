@@ -5,16 +5,21 @@ and search = {
   mutable address : string option;
   mutable raw : bool;
   mutable certificate : string;
+  mutable timeout : float;
 }
 
 module type S = sig
   val parse :
     unit ->
-    (t, [> `CliErrUnknownSubCmd of string | `CliErrUsageMsg of string ]) result
+    ( t,
+      [> `CliErrBadTimeoutFormat
+      | `CliErrUnknownSubCmd of string
+      | `CliErrUsageMsg of string ] )
+    result
 end
 
 module Default : S = struct
-  let search = { address = None; raw = false; certificate = "" }
+  let search = { address = None; raw = false; certificate = ""; timeout = 5.0 }
   let hist = { mode = `Display }
 
   let specs_hist =
@@ -27,12 +32,21 @@ module Default : S = struct
         "Delete history entries that match regex" );
     ]
 
+  exception BadTimeoutFormat
+
   let specs_search =
     [
       ("--raw", Arg.Unit (fun () -> search.raw <- true), "Disable formatting");
       ( "--cert",
         Arg.String (fun c -> search.certificate <- c),
         "Attach client certificate" );
+      ( "--timeout",
+        Arg.String
+          (fun t ->
+            match float_of_string_opt t with
+            | None -> raise_notrace BadTimeoutFormat
+            | Some t -> search.timeout <- t),
+        "Set timeout duration" );
     ]
 
   let speclist = ref []
@@ -68,5 +82,6 @@ module Default : S = struct
       error_msg ()
     with
     | Invalid_argument _ -> error_msg ()
+    | BadTimeoutFormat -> Error `CliErrBadTimeoutFormat
     | UnknownSubCmd cmd -> Error (`CliErrUnknownSubCmd cmd)
 end

@@ -8,7 +8,9 @@ type back =
   | `NotFound
   | `UnknownHostOrServiceName ]
 
-type front = [ `CliErrUnknownSubCmd of string | `NoUrlProvided ]
+type front =
+  [ `CliErrBadTimeoutFormat | `CliErrUnknownSubCmd of string | `NoUrlProvided ]
+
 type t = [ front | back ]
 
 let pp () = function
@@ -20,5 +22,6 @@ let pp () = function
   | `NotFound -> "not found"
   | `NoUrlProvided -> "no url is provided"
   | `UnknownHostOrServiceName -> "unknown host or service name"
+  | `CliErrBadTimeoutFormat -> "bad format for timeout"
   | `CliErrUnknownSubCmd sub_cmd ->
       Printf.sprintf "unknown sub command %S" sub_cmd

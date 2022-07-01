@@ -10,6 +10,7 @@ bug-reports: "https://github.com/Tim-ats-d/Indigobi/issues"
 depends: [
   "dune" {>= "2.9"}
   "lambda-term"
+  "lwt-ssl"
   "ssl"
   "ocaml" {>= "4.13"}
   "odoc" {with-doc}
