@@ -23,6 +23,7 @@
  (depends
   dune
   lambda-term
+  lwt-ssl
   ssl
   (ocaml
    (>= 4.13))))
