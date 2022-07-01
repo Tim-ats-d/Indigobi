@@ -43,8 +43,8 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
                 else Handler.handle_gemini @@ Gemini.Text.parse body
             | Ok ({ Mime.media_type = Text txt; _ }, body) ->
                 Handler.handle_text body ~typ:txt
-            | Ok ({ Mime.media_type = Other o; _ }, body) ->
-                Handler.handle_other o body
+            | Ok ({ Mime.media_type = Other media_type; _ }, body) ->
+                Handler.handle_other body ~media_type
             | Error (#Gemini.Status.err as e) ->
                 Handler.handle_err @@ `GeminiErr e
             | Error (#Err.t as e) -> Handler.handle_err @@ `CommonErr e))

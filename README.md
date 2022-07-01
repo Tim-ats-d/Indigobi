@@ -2,6 +2,11 @@
 
 A WIP Gemini client written in OCaml.
 
+## Requiremrents
+
+- `xdg-mime` from `xdg-utils`
+- `gtk-launch`
+
 ### Todo
 
 - TUI with `lambda-term`

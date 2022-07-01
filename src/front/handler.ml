@@ -1,7 +1,7 @@
 module type S = sig
   val handle_text : ?typ:string -> string -> unit Lwt.t
   val handle_gemini : Gemini.Text.t -> unit Lwt.t
-  val handle_other : string -> string -> unit Lwt.t
+  val handle_other : string -> media_type:string -> unit Lwt.t
 
   val handle_err :
     [< `GeminiErr of Gemini.Status.err | `CommonErr of Common.Err.t ] ->
@@ -26,7 +26,14 @@ module Make (Printer : Printer.S) : S = struct
     in
     Lwt_list.iter_s print_line lines
 
-  let handle_other _ _ = failwith "todo: non-text format"
+  let handle_other body ~media_type =
+    let get_app_name = [| "xdg-mime"; "query"; "default"; media_type |] in
+    let* app_name = Lwt_process.pread_line ("", get_app_name) in
+    let* fname, outc = Lwt_io.open_temp_file () in
+    let* () = Lwt_io.write outc body in
+    let launch_app = [| "gtk-launch"; app_name; fname |] in
+    let* _ = Lwt_process.exec ("", launch_app) in
+    Lwt.return_unit
 
   let handle_err err =
     let msg =
