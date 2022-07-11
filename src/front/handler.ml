@@ -29,7 +29,7 @@ module Make (Printer : Printer.S) : S = struct
   let handle_other body =
     let* fname, outc = Lwt_io.open_temp_file () in
     let* () = Lwt_io.write outc body in
-    let launch_app = [| "open"; fname |] in
+    let launch_app = [| "LAUNCH_APP"; fname |] in
     let* _ = Lwt_process.exec ~stderr:`Close ("", launch_app) in
     let* () = Lwt_io.close outc in
     Lwt.return_unit

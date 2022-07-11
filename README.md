@@ -2,10 +2,14 @@
 
 A WIP Gemini client written in OCaml.
 
-## Requiremrents
+## Install
 
-- `xdg-mime` from `xdg-utils`
-- `gtk-launch`
+`make build-unix` or `make build-macos` according to your system.
+
+Then:
+```
+make install
+```
 
 ### Todo
 
