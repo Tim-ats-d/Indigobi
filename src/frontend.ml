@@ -29,14 +29,13 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
         else Handler.handle_gemini @@ Gemini.Text.parse body
     | Ok ({ Mime.media_type = Text txt; _ }, body) ->
         Handler.handle_text body ~typ:txt
-    | Ok ({ Mime.media_type = Other _; _ }, body) -> Handler.handle_other body
+    | Ok ({ Mime.media_type = Other mime; _ }, body) -> Handler.handle_other body ~mime
     | Error (#Gemini.Status.err as e) -> Handler.handle_err @@ `GeminiErr e
     | Error (#Err.t as e) -> Handler.handle_err @@ `CommonErr e
 
   let launch () =
-    let* _ = Handler.handle_other "i herd u liek mudkipz" in
-
-    (* todo: remove this *)
+    let* _ = Handler.handle_other "i herd u liek mudkipz" ~mime:"html" in
+      (* TODO: remove this *)
     match ArgParser.parse () with
     | Error ((`CliErrUnknownSubCmd _ | `CliErrBadTimeoutFormat) as err) ->
         Handler.handle_err @@ `CommonErr err

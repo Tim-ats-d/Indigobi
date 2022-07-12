@@ -1,7 +1,7 @@
 module type S = sig
   val handle_text : ?typ:string -> string -> unit Lwt.t
   val handle_gemini : Gemini.Text.t -> unit Lwt.t
-  val handle_other : string -> unit Lwt.t
+  val handle_other : string -> mime:string -> unit Lwt.t
 
   val handle_err :
     [< `GeminiErr of Gemini.Status.err | `CommonErr of Common.Err.t ] ->
@@ -26,8 +26,8 @@ module Make (Printer : Printer.S) : S = struct
     in
     Lwt_list.iter_s print_line lines
 
-  let handle_other body =
-    let* fname, outc = Lwt_io.open_temp_file () in
+  let handle_other body ~mime =
+    let* fname, outc = Lwt_io.open_temp_file ~suffix:("." ^ mime) () in
     let* () = Lwt_io.write outc body in
     let launch_app = [| "LAUNCH_APP"; fname |] in
     let* _ = Lwt_process.exec ~stderr:`Close ("", launch_app) in
