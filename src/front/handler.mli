@@ -1,7 +1,7 @@
 module type S = sig
   val handle_text : ?typ:string -> string -> unit Lwt.t
   val handle_gemini : Gemini.Text.t -> unit Lwt.t
-  val handle_other : string -> media_type:string -> unit Lwt.t
+  val handle_other : string -> mime:string -> unit Lwt.t
 
   val handle_err :
     [< `CommonErr of Common.Err.t | `GeminiErr of Gemini.Status.err ] ->
