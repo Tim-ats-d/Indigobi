@@ -17,4 +17,4 @@ module LogFileHandler : HANDLER = struct
         Lwt_io.write outc log)
 end
 
-include (val Logger.make ~level:Debug [ (module OutChanHandler) ])
+include (val Logger.make ~level:Debug [])

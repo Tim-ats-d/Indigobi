@@ -19,7 +19,7 @@ module type S = sig
 end
 
 module Default : S = struct
-  let search = { address = None; raw = false; certificate = ""; timeout = 5.0 }
+  let speclist = ref []
   let hist = { mode = `Display }
 
   let specs_hist =
@@ -33,6 +33,8 @@ module Default : S = struct
     ]
 
   exception BadTimeoutFormat
+
+  let search = { address = None; raw = false; certificate = ""; timeout = 5.0 }
 
   let specs_search =
     [
@@ -49,7 +51,6 @@ module Default : S = struct
         "Set timeout duration" );
     ]
 
-  let speclist = ref []
   let sub_cmd : [ `History | `Search ] option ref = ref None
 
   exception UnknownSubCmd of string
