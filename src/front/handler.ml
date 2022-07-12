@@ -27,7 +27,9 @@ module Make (Printer : Printer.S) : S = struct
     Lwt_list.iter_s print_line lines
 
   let handle_other body ~mime =
-    let* fname, outc = Lwt_io.open_temp_file ~suffix:("." ^ mime) () in
+    let* fname, outc =
+      Lwt_io.open_temp_file ~prefix:"indigobi_" ~suffix:("." ^ mime) ()
+    in
     let* () = Lwt_io.write outc body in
     let launch_app = [| "LAUNCH_APP"; fname |] in
     let* _ = Lwt_process.exec ~stderr:`Close ("", launch_app) in
