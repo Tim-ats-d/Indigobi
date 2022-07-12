@@ -21,8 +21,11 @@ module Make (Printer : Printer.S) : S = struct
   let handle_gemini lines =
     let print_line line =
       with_term LTerm.stdout (fun term ->
-          try LTerm.fprintls term @@ Printer.stylize_gemini line
-          with Zed_string.Invalid (_, text) -> LTerm.printl text)
+          Lwt.catch
+            (fun () -> LTerm.fprintls term @@ Printer.stylize_gemini line)
+            (function
+              | Zed_string.Invalid (_, text) -> LTerm.printl text
+              | exn -> Lwt.fail exn))
     in
     Lwt_list.iter_s print_line lines
 
