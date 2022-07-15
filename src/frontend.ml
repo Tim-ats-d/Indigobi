@@ -6,15 +6,10 @@ end
 
 module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   S = struct
-  let make_history () : (module History.S) =
-    match Dir.cache_dir with
-    | None -> failwith "No history path"
-    | Some path ->
-        (module History.Make (struct
-          let path = path
-        end))
+  module Hist = History.Make (struct
+    let path = Dir.cache_dir
+  end)
 
-  module Hist = (val make_history ())
   open Lwt.Syntax
 
   let search addr ~raw ~certificate =

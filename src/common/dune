@@ -1,4 +1,4 @@
 (library
  (name common)
  (modules_without_implementation types)
- (libraries directories lwt lwt.unix sexplib str))
+ (libraries lwt lwt.unix sexplib str))
