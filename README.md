@@ -1,19 +1,31 @@
 # Indigobi
 
-A WIP Gemini client written in OCaml.
+Indigobi is a WIP **Gemini client** written in OCaml.
 
-## Install
+<p align="center">
+  <img src="assets/demo.png" alt="Demo">
+</p>
+
+## Features
+
+- Pretty gemini pages rendering.
+- External file in their default app opening.
+- Browsable history.
+
+#### Not yet implemented
+
+- A TUI with `lambda-term`.
+- Lang and charset attributes in MIME section of header handling.
+
+## Installing
 
 `make build-unix` or `make build-macos` according to your system.
+Then, `make install`.
 
-Then:
-```
-make install
-```
+## Contributing
 
-### Todo
+Pull requests, bug reports, and feature requests are welcome.
 
-- TUI with `lambda-term`
-- Lang and charset attributes in MIME section of header
-- Handle non-text format
-- History (with a zipper ?)
+## License
+
+- **GPL 3.0** or later. See [license](LICENSE) for more information.
