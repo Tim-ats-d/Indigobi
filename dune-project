@@ -15,8 +15,6 @@
 
 (homepage "https://github.com/Tim-ats-d/Indigobi")
 
-(generate_opam_files true)
-
 (package
  (name indigobi)
  (synopsis "A cute Gemini client written in OCaml")

@@ -9,14 +9,15 @@ homepage: "https://github.com/Tim-ats-d/Indigobi"
 bug-reports: "https://github.com/Tim-ats-d/Indigobi/issues"
 depends: [
   "dune" {>= "2.9"}
-  "lambda-term"
-  "lwt-ssl"
-  "ssl"
+  "lambda-term" {>= "3.3.0"}
+  "lwt" {>= "5.6.0"}
+  "lwt_ssl" {>= "1.1"}
+  "ppx_sexp_conv" {>= "v0.15.1"}
+  "ssl" {>= "0.5.10"}
   "ocaml" {>= "4.13"}
   "odoc" {with-doc}
 ]
 build: [
-  ["dune" "subst"] {dev}
   [
     "dune"
     "build"
