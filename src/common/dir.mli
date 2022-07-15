@@ -1,2 +1,2 @@
-val cache_dir : string option
-val config_dir : string option
+val cache_dir : string
+val config_dir : string
