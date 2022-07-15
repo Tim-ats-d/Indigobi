@@ -13,16 +13,20 @@ module Default : S = struct
   let init req =
     let* () = Common.Log.debug "Creating TLS context" in
     let ctx = Ssl.create_context TLSv1_2 Client_context in
-    (if req.Gemini.Request.cert <> "" then
-     let _ = Common.Log.debug "Using client certificate" in
-     let cert_re =
-       Str.regexp
-         "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
-          \\(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\\)"
-     in
-     Ssl.use_certificate_from_string ctx
-       (Str.replace_first cert_re "\\1" req.cert)
-       (Str.replace_first cert_re "\\2" req.cert));
+    let* () =
+      if req.Gemini.Request.cert <> "" then (
+        let* () = Common.Log.debug "Using client certificate" in
+        let cert_re =
+          Str.regexp
+            "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
+             \\(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\\)"
+        in
+        Ssl.use_certificate_from_string ctx
+          (Str.replace_first cert_re "\\1" req.cert)
+          (Str.replace_first cert_re "\\2" req.cert);
+        Lwt.return_unit)
+      else Lwt.return_unit
+    in
     let* () = Common.Log.debug "Creating socket" in
     let socket =
       Lwt_unix.socket (Unix.domain_of_sockaddr req.addr.ai_addr) SOCK_STREAM 0
