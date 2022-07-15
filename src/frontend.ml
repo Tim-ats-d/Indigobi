@@ -39,16 +39,18 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     | Error ((`CliErrUnknownSubCmd _ | `CliErrBadTimeoutFormat) as err) ->
         Handler.handle_err @@ `CommonErr err
     | Error (`CliErrUsageMsg msg) -> Handler.handle_text msg
-    | Ok (History { mode = `Del re }) -> Lwt.return @@ Hist.del_from_regex re
+    | Ok (History { mode = `Del re }) -> Hist.del_from_regex re
     | Ok (History { mode = `Display }) ->
-        Hist.get_all () |> Hist.show |> LTerm.printlf "%s%!"
+        let* hist = Hist.get_all () in
+        LTerm.printlf "%a%!" Hist.pp hist
     | Ok (History { mode = `Search re }) ->
-        Hist.search_from_regex re |> Hist.show |> LTerm.printlf "%s%!"
+        let* hist = Hist.search_from_regex re in
+        LTerm.printlf "%a%!" Hist.pp hist
     | Ok (Search { address; raw; certificate; timeout }) -> (
         match address with
         | None -> Handler.handle_err @@ `CommonErr `NoUrlProvided
         | Some addr ->
-            Hist.push addr;
+            let* () = Hist.push addr in
             let timeout = Lwt_unix.sleep timeout in
             Lwt.pick [ timeout; search addr ~raw ~certificate ])
 end

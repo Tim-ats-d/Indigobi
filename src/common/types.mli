@@ -1,3 +1,9 @@
+module type PPABLE = sig
+  type t
+
+  val pp : unit -> t -> string
+end
+
 module type SEXPABLE = sig
   type t
 

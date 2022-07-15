@@ -13,55 +13,72 @@ end
 module type ABSTRACT_HIST = sig
   type entry
 
-  val get_all : unit -> entry list
-  val push : entry -> unit
-  val search_from_regex : string -> entry list
-  val del_from_regex : string -> unit
+  val get_all : unit -> entry list Lwt.t
+  val push : entry -> unit Lwt.t
+  val search_from_regex : string -> entry list Lwt.t
+  val del_from_regex : string -> unit Lwt.t
 
-  include Common.Types.SHOWABLE with type t := entry list
+  include Common.Types.PPABLE with type t := entry list
 end
+
+module type S = ABSTRACT_HIST with type entry := string
 
 module MakeBase (Path : PATH) (Entry : ENTRY) :
   ABSTRACT_HIST with type entry = Entry.t = struct
   type entry = Entry.t
 
-  module Slib = Sexplib
-
-  let create_hist_file () =
-    let oc = open_out Path.path in
-    output_string oc "()";
-    close_out oc
+  module Sex = Sexplib
+  open Lwt.Syntax
 
   let get_all () =
-    try
-      Slib.Sexp.load_sexp Path.path |> Slib.Conv.list_of_sexp Entry.t_of_sexp
-    with
-    | Failure _ -> []
-    | Sys_error _ ->
-        create_hist_file ();
-        []
+    Lwt.catch
+      (fun () ->
+        let* content = Lwt_io.with_file Path.path ~mode:Input Lwt_io.read in
+        content |> Sex.Sexp.of_string
+        |> Sex.Conv.list_of_sexp Entry.t_of_sexp
+        |> Lwt.return)
+      (function
+        | Failure _ | Sex.Sexp.Parse_error _ ->
+            let* () = Common.Log.err "History file is corrupted" in
+            Lwt.return_nil
+        | Sys_error _ ->
+            let* () =
+              Lwt_io.with_file Path.path ~mode:Output (fun outc ->
+                  Lwt_io.write outc "()")
+            in
+            let* () = Common.Log.info "Create history file" in
+            Lwt.return_nil
+        | exn -> raise exn)
 
-  let save_entries t =
-    Slib.Conv.sexp_of_list Entry.sexp_of_t t |> Slib.Sexp.save_mach Path.path
+  let save t =
+    Lwt_io.with_file Path.path ~mode:Output (fun outc ->
+        let str_sexp =
+          Sex.Sexp.to_string @@ Sex.Conv.sexp_of_list Entry.sexp_of_t t
+        in
+        Lwt_io.write outc str_sexp)
 
-  let push e = e :: get_all () |> save_entries
+  let push e =
+    let* entries = get_all () in
+    save (e :: entries)
 
   let search_from_regex re =
     let regexp = Str.regexp re in
-    get_all ()
-    |> List.filter (fun e -> Str.string_match regexp (Entry.to_string e) 0)
+    let* entries = get_all () in
+    Lwt.return
+    @@ List.filter
+         (fun e -> Str.string_match regexp (Entry.to_string e) 0)
+         entries
 
   let del_from_regex re =
     let regexp = Str.regexp re in
-    get_all ()
-    |> List.filter (fun e ->
-           not @@ Str.string_match regexp (Entry.to_string e) 0)
-    |> save_entries
+    let* entries = get_all () in
+    save
+    @@ List.filter
+         (fun e -> not @@ Str.string_match regexp (Entry.to_string e) 0)
+         entries
 
-  let show entries = List.map Entry.show entries |> String.concat "\n"
+  let pp () entries = String.concat "\n" @@ List.map Entry.show entries
 end
-
-module type S = ABSTRACT_HIST with type entry := string
 
 module Make (Path : PATH) : S = struct
   open Sexplib.Conv
@@ -69,8 +86,8 @@ module Make (Path : PATH) : S = struct
   module Entry = struct
     type t = string [@@deriving sexp]
 
-    let show = Fun.id
-    let to_string = Fun.id
+    let show t = t
+    let to_string t = t
   end
 
   include MakeBase (Path) (Entry)
