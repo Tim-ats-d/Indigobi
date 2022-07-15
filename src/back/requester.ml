@@ -11,23 +11,38 @@ module Default : S = struct
   open Lwt.Syntax
 
   let init req =
+    let* () = Common.Log.debug "Creating TLS context" in
     let ctx = Ssl.create_context TLSv1_2 Client_context in
-    (if req.Gemini.Request.cert <> "" then
-     let cert_re =
-       Str.regexp
-         "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
-          \\(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\\)"
-     in
-     Ssl.use_certificate_from_string ctx
-       (Str.replace_first cert_re "\\1" req.cert)
-       (Str.replace_first cert_re "\\2" req.cert));
+    let* () =
+      if req.Gemini.Request.cert <> "" then (
+        let* () = Common.Log.debug "Using client certificate" in
+        let cert_re =
+          Str.regexp
+            "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
+             \\(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\\)"
+        in
+        Ssl.use_certificate_from_string ctx
+          (Str.replace_first cert_re "\\1" req.cert)
+          (Str.replace_first cert_re "\\2" req.cert);
+        Lwt.return_unit)
+      else Lwt.return_unit
+    in
+    let* () = Common.Log.debug "Creating socket" in
     let socket =
       Lwt_unix.socket (Unix.domain_of_sockaddr req.addr.ai_addr) SOCK_STREAM 0
     in
+    let* () = Common.Log.debug "Connecting UNIX socket to address" in
     let* () = Lwt_unix.connect socket req.addr.ai_addr in
-    let* ssl = Lwt_ssl.ssl_connect socket ctx in
-    Ssl.set_client_SNI_hostname (Option.get @@ Lwt_ssl.ssl_socket ssl) req.host;
-    Lwt.return ssl
+    let* () =
+      Common.Log.debug "Embedding UNIX socket using context into TLS socket"
+    in
+    let ssl = Lwt_ssl.embed_uninitialized_socket socket ctx in
+    let* () = Common.Log.debugf "SNI extension (%s)" req.host in
+    Ssl.set_client_SNI_hostname
+      (Lwt_ssl.ssl_socket_of_uninitialized_socket ssl)
+      req.host;
+    let* () = Common.Log.debug "Connecting to socket" in
+    Lwt_ssl.ssl_perform_handshake ssl
 
   let close socket = Lwt_ssl.close socket
 
