@@ -8,8 +8,9 @@ struct
 
   let os_type =
     Lwt_main.run
-      (let* system = Lwt_process.pread ("", [| "uname" |]) in
-       Lwt.return @@ match system with "Darwin" -> Darwin | _ -> OtherUnix)
+      (let* system = Lwt_process.pread ("uname", [||]) in
+       Lwt.return
+       @@ match String.trim system with "Darwin" -> Darwin | _ -> OtherUnix)
 
   let in_home fmt args =
     Filename.concat (Sys.getenv "HOME") (Printf.sprintf fmt args)
