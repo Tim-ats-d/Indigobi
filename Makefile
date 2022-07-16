@@ -1,25 +1,24 @@
 .PHONY: all build clean doc repl fmt deps
 
-TARGET = "./src/front/handler.ml"
+file = "./src/front/handler.ml"
+TARGET =
 
-all: build-unix doc
+ifeq ($(TARGET),DARWIN)
+	LAUNCH_APP=open
+else
+	ifeq ($(TARGET),UNIX)
+		LAUNCH_APP=xdg-open
+	endif
+endif
+
+all: build doc
 
 build:
-	dune build
-
-build-unix:
 	$(eval TMP_BCK := $(shell mktemp))
-	cat $(TARGET) > $(TMP_BCK)
-	tmp=$$(mktemp); sed "s/LAUNCH_APP/xdg-open/" $(TARGET) >$$tmp; mv $$tmp $(TARGET)
+	cp $(file) $(TMP_BCK)
+	tmp=$$(mktemp); sed "s/LAUNCH_APP/$(LAUNCH_APP)/" $(file) >$$tmp; mv $$tmp $(file)
 	dune build
-	mv $(TMP_BCK) $(TARGET)
-
-build-macos:
-	$(eval TMP_BCK := $(shell mktemp))
-	cat $(TARGET) > $(TMP_BCK)
-	tmp=$$(mktemp); sed "s/LAUNCH_APP/open/" $(TARGET) >$$tmp; mv $$tmp $(TARGET)
-	dune build
-	mv $(TMP_BCK) $(TARGET)
+	mv $(TMP_BCK) $(file)
 
 doc:
 	dune build @doc-private
