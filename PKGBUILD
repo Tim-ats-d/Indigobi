@@ -6,8 +6,7 @@ pkgdesc="A cute Gemini client written in OCaml."
 arch=('any')
 url="https://github.com/Tim-ats-d/Indigobi"
 license=('GPL3')
-depends=('dune'
-         'opam')
+depends=('opam')
 makedepends=('git')
 optdepends=('xdg-open: external file opening support on UNIX')
 install=
