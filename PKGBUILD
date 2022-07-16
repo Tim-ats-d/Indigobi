@@ -1,6 +1,6 @@
 # Maintainer: Timéo Arnouts <tim.arnouts@protonmail.com>
 pkgname=indigobi
-pkgver=87.4c3c6f6
+pkgver=96.ae67376
 pkgrel=1
 pkgdesc="A cute Gemini client written in OCaml."
 arch=('any')
@@ -10,17 +10,15 @@ depends=('opam')
 makedepends=('git')
 optdepends=('xdg-open: external file opening support on UNIX')
 install=
-changelog=
 source=("$pkgname::git+https://github.com/Tim-ats-d/Indigobi")
+changelog=
 md5sums=('SKIP')
 
 build() {
   cd $srcdir/$pkgname
 
-  echo $srcdir
-
   opam install --deps-only .
-  make build-unix
+  make build TARGET=UNIX
 }
 
 package() {
