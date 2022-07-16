@@ -19,7 +19,13 @@ Indigobi is a WIP **Gemini client** written in OCaml.
 
 ## Installing
 
-`make build-unix` or `make build-macos` according to your system.
+### Dependencies
+
+Install the dependencies by typing `make deps`.
+
+### Building
+
+`make build TARGET=UNIX` or `make build TARGET=DARWIN` according to your system.
 Then, `make install`.
 
 ## Contributing
