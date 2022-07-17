@@ -22,8 +22,7 @@ Indigobi is a WIP **Gemini client** written in OCaml.
 
 ```
 $ make deps
-$ make build TARGET=UNIX
-# or make build TARGET=DARWIN according to your system.
+$ make build
 $ make install
 ```
 
