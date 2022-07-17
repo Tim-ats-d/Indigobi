@@ -48,7 +48,7 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
             in
             let* () = Common.Log.info "Create history file" in
             Lwt.return_nil
-        | exn -> raise exn)
+        | exn -> Lwt.fail exn)
 
   let save t =
     Lwt_io.with_file Path.path ~mode:Output (fun outc ->

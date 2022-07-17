@@ -49,7 +49,7 @@ module Default : S = struct
   let input_char ssl =
     let tmp = Lwt_bytes.create 1 in
     let* chr = Lwt_ssl.read_bytes ssl tmp 0 1 in
-    if chr <> 1 then raise End_of_file else Lwt.return @@ Lwt_bytes.get tmp 0
+    if chr <> 1 then Lwt.fail End_of_file else Lwt.return @@ Lwt_bytes.get tmp 0
 
   let fetch_header socket req =
     let bytes = String.to_bytes req in
