@@ -14,8 +14,8 @@ let guess = function
   | o -> Other o
 
 let parse str =
-  if str = "" then { media_type = Gemini; encoding = `Utf8; lang = `None }
-  else
-    match String.split_on_char ';' str with
-    | [ mtype ] -> { media_type = guess mtype; encoding = `Utf8; lang = `None }
-    | _ -> failwith "todo: lang and charset attributes"
+  let media_type =
+    if str = "" then Gemini
+    else guess @@ List.hd @@ String.split_on_char ';' str
+  in
+  { media_type; encoding = `Utf8; lang = `None }
