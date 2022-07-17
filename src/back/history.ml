@@ -33,7 +33,9 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
   let get_all () =
     Lwt.catch
       (fun () ->
-        let* content = Lwt_io.with_file Path.path ~mode:Input Lwt_io.read in
+        let* content =
+          Lwt_io.with_file Path.path ~mode:Input Lwt_io.read
+        in
         content |> Sex.Sexp.of_string
         |> Sex.Conv.list_of_sexp Entry.t_of_sexp
         |> Lwt.return)
@@ -41,7 +43,7 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
         | Failure _ | Sex.Sexp.Parse_error _ ->
             let* () = Common.Log.err "History file is corrupted" in
             Lwt.return_nil
-        | Sys_error _ ->
+        | Unix.Unix_error (ENOENT, _, _) ->
             let* () =
               Lwt_io.with_file Path.path ~mode:Output (fun outc ->
                   Lwt_io.write outc "()")
