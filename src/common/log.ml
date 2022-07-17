@@ -8,6 +8,12 @@ module StdoutHandler : HANDLER = struct
   let emit = Lwt_io.(write stdout)
 end
 
+module UserStdoutHandler : HANDLER = struct
+  let level = Lvl.Info
+  let formatter = fmt
+  let emit = Lwt_io.(write stdout)
+end
+
 module LogFileHandler : HANDLER = struct
   let level = Lvl.Debug
   let formatter = fmt
@@ -17,4 +23,4 @@ module LogFileHandler : HANDLER = struct
         Lwt_io.write outc log)
 end
 
-include (val Logger.make ~level:Debug [])
+include (val Logger.make ~level:Debug [ (module UserStdoutHandler) ])
