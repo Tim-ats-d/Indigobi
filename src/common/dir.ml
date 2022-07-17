@@ -1,32 +1,15 @@
-module Dirs (App : sig
-  val app_name : string
-end) =
-struct
-  open Lwt.Syntax
+let in_home = Filename.concat (Sys.getenv "HOME")
 
-  type os_type = Darwin | OtherUnix
+let cache_dir =
+  in_home
+  @@ Filename.concat
+       [%system { darwin = "Library/Caches"; unix = ".cache" }]
+       [%system { darwin = "Indigobi"; unix = "indigobi" }]
 
-  let os_type =
-    Lwt_main.run
-      (let* system = Lwt_process.pread ("uname", [||]) in
-       Lwt.return
-       @@ match String.trim system with "Darwin" -> Darwin | _ -> OtherUnix)
-
-  let in_home fmt args =
-    Filename.concat (Sys.getenv "HOME") (Printf.sprintf fmt args)
-
-  let cache_dir =
-    match os_type with
-    | Darwin ->
-        in_home "Library/Caches/%s" (String.capitalize_ascii App.app_name)
-    | OtherUnix -> in_home ".cache/%s" App.app_name
-
-  let config_dir =
-    match os_type with
-    | Darwin -> in_home "Library/Preferences/%s.plist" App.app_name
-    | OtherUnix -> in_home ".config/%s" App.app_name
-end
-
-include Dirs (struct
-  let app_name = "indigobi"
-end)
+let config_dir =
+  in_home
+    [%system
+      {
+        darwin = "Library/Preferences/indigobi.plist";
+        unix = ".config/indigobi";
+      }]
