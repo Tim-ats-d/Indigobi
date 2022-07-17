@@ -38,7 +38,7 @@ It assumes you have an opam switch setup for OCaml 4.13. If not:
 
 ```
 $ opam init
-$ opam switch create 4.13.0
+$ opam switch create indigobi 4.13.0
 $ eval $(opam env)
 ```
 
