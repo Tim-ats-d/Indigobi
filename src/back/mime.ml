@@ -1,9 +1,4 @@
-type t = {
-  media_type : media_type;
-  encoding : [ `Utf8 | `Other of string ];
-  lang : [ `None ];
-}
-
+type t = { media_type : media_type; encoding : [ `Utf8 | `Other of string ] }
 and media_type = Gemini | Text of string | Other of string
 
 let mime_re = Str.regexp "text/\\(.*\\)"
@@ -14,8 +9,9 @@ let guess = function
   | o -> Other o
 
 let parse str =
-  let media_type =
-    if str = "" then Gemini
-    else guess @@ List.hd @@ String.split_on_char ';' str
-  in
-  { media_type; encoding = `Utf8; lang = `None }
+  let default = { media_type = Gemini; encoding = `Utf8 } in
+  if str = "" then default
+  else
+    match String.split_on_char ';' str with
+    | [ mtype ] -> { media_type = guess mtype; encoding = `Utf8 }
+    | _ -> default
