@@ -34,7 +34,9 @@ module Make (Printer : Printer.S) : S = struct
       Lwt_io.open_temp_file ~prefix:"indigobi_" ~suffix:("." ^ mime) ()
     in
     let* () = Lwt_io.write outc body in
-    let launch_app = [| "LAUNCH_APP"; fname |] in
+    let launch_app =
+      [| [%system { darwin = "open"; unix = "xdg-open" }]; fname |]
+    in
     let* _ = Lwt_process.exec ~stderr:`Close ("", launch_app) in
     let* () = Lwt_io.close outc in
     Lwt.return_unit

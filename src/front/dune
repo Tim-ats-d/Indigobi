@@ -1,3 +1,5 @@
 (library
  (name front)
+ (preprocess
+  (pps ppx_system))
  (libraries common config gemini lambda-term))
