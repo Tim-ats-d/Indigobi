@@ -80,6 +80,9 @@ module Default : S = struct
         (function
           | Ssl.Read_error Error_zero_return | End_of_file ->
               Lwt.return @@ Buffer.contents buf
+          | Ssl.Read_error Error_ssl ->
+              let* () = Common.Log.warn "SSL error, some data may be missing" in
+              Lwt.return @@ Buffer.contents buf
           | exn -> Lwt.fail exn)
     in
     input_in ()
