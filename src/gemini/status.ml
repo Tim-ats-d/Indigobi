@@ -6,11 +6,12 @@ type err =
   | `ClientCertificateRequired of
     string * [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
 
-type t =
+type success =
   [ `Input of string * [ `Sensitive of bool ]
   | `Success
-  | `Redirect of string * [ `Temporary | `Permanent ]
-  | err ]
+  | `Redirect of string * [ `Temporary | `Permanent ] ]
+
+type t = [ success | err ]
 
 let from_int meta = function
   | 10 -> Ok (`Input (meta, `Sensitive false))

@@ -20,15 +20,13 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
     match Gemini.Header.parse header with
     | Error (`MalformedHeader | `TooLongHeader) ->
         Lwt_result.fail `MalformedServerResponse
-    | Error ((`GracefulFail | `InvalidStatusCode _) as err) ->
-        Lwt_result.fail err
+    | Error (#Common.Err.status_code as err) -> Lwt_result.fail err
     | Ok { status; meta } -> (
         match status with
-        | `Input (meta, `Sensitive true) ->
-            let* input = Prompt.prompt_sensitive meta in
-            request @@ Gemini.Request.attach_input req input
-        | `Input (meta, `Sensitive false) ->
-            let* input = Prompt.prompt meta in
+        | `Input (meta, `Sensitive s) ->
+            let* input =
+              if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
+            in
             request @@ Gemini.Request.attach_input req input
         | `Success ->
             let* body = Requester.parse_body socket in
@@ -38,9 +36,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
             get
               ~url:Urllib.(to_string @@ parse meta req.host)
               ~host:req.host ~port:req.port ~cert:req.cert
-        | ( `TemporaryFailure _ | `PermanentFailure _
-          | `ClientCertificateRequired _ ) as err ->
-            Lwt_result.fail err)
+        | #Gemini.Status.err as err -> Lwt_result.fail err)
 
   and get ~url ~host ~port ~cert =
     Ssl.init ();

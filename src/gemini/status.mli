@@ -6,11 +6,12 @@ type err =
   | `ClientCertificateRequired of
     string * [ `None | `CertificateNotAuthorised | `CertificateNotValid ] ]
 
-type t =
+type success =
   [ `Input of string * [ `Sensitive of bool ]
   | `Success
-  | `Redirect of string * [ `Temporary | `Permanent ]
-  | err ]
+  | `Redirect of string * [ `Temporary | `Permanent ] ]
+
+type t = [ success | err ]
 
 val from_int : string -> int -> (t, Common.Err.status_code) result
 val pp : unit -> err -> string
