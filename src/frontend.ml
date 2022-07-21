@@ -7,7 +7,7 @@ end
 module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   S = struct
   module Hist = History.Make (struct
-    let path = Dir.cache_dir
+    let path = Dir.history_path
   end)
 
   open Lwt.Syntax
