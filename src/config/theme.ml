@@ -1,7 +1,9 @@
-type style = LTerm_style.t
+module type ABSTRACT = sig
+  type style
 
-module type S = sig
   val text : style
+  val link : style
+  val visited_link : style
   val preformat : style
   val h1 : style
   val h2 : style
@@ -11,8 +13,12 @@ module type S = sig
   val error : style
 end
 
+module type S = ABSTRACT with type style := LTerm_style.t
+
 module Default : S = struct
   let text = LTerm_style.{ none with foreground = Some default }
+  let link = LTerm_style.{ none with foreground = Some Color.blue }
+  let visited_link = LTerm_style.{ none with foreground = Some Color.purple }
   let preformat = LTerm_style.{ none with foreground = Some Color.yellow }
 
   let h1 =

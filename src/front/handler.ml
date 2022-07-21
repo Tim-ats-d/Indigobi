@@ -1,6 +1,9 @@
 module type S = sig
   val handle_text : ?typ:string -> string -> unit Lwt.t
-  val handle_gemini : Gemini.Text.t -> unit Lwt.t
+
+  val handle_gemini :
+    history:string Common.History.t -> Gemini.Text.t -> unit Lwt.t
+
   val handle_other : string -> mime:string -> unit Lwt.t
 
   val handle_err :
@@ -18,11 +21,13 @@ module Make (Printer : Printer.S) : S = struct
 
   let handle_text ?typ:_ = LTerm.printl
 
-  let handle_gemini lines =
+  let handle_gemini ~history lines =
     let print_line line =
       with_term LTerm.stdout (fun term ->
           Lwt.catch
-            (fun () -> LTerm.fprintls term @@ Printer.stylize_gemini line)
+            (fun () ->
+              let* stylized_line = Printer.stylize_gemini ~history line in
+              LTerm.fprintls term stylized_line)
             (function
               | Zed_string.Invalid (_, text) -> LTerm.printl text
               | exn -> Lwt.fail exn))

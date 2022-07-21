@@ -1,6 +1,9 @@
 module type S = sig
   val handle_text : ?typ:string -> string -> unit Lwt.t
-  val handle_gemini : Gemini.Text.t -> unit Lwt.t
+
+  val handle_gemini :
+    history:string Common.History.t -> Gemini.Text.t -> unit Lwt.t
+
   val handle_other : string -> mime:string -> unit Lwt.t
 
   val handle_err :
