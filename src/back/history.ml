@@ -45,7 +45,7 @@ module MakeBase (Path : PATH) (Entry : ENTRY) :
             let* test = Lwt_unix.file_exists Common.Dir.cache_dir in
             let* () =
               if test then Lwt.return_unit
-              else Lwt_unix.mkdir Common.Dir.cache_dir 0o666
+              else Lwt_unix.mkdir Common.Dir.cache_dir 0o751
             in
             let* () =
               Lwt_io.with_file Path.path ~mode:Output (fun outc ->
