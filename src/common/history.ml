@@ -33,8 +33,8 @@ let get (type a) (((module CacheAcc), (module Entry)) : a t) =
 
 let save (type a) (((module CacheAcc), (module Entry)) : a t) entries =
   CacheAcc.write
-  @@ Sexplib.(
-       Sexp.to_string @@ Sexplib.Conv.sexp_of_list Entry.sexp_of_t entries)
+    Sexplib.(
+      Sexp.to_string @@ Sexplib.Conv.sexp_of_list Entry.sexp_of_t entries)
 
 let push t entry =
   let* entries = get t in
@@ -58,6 +58,6 @@ let del_from_regex (type a) (t : a t) re =
        (fun e -> not @@ Str.string_match regexp (Entry.to_string e) 0)
        entries
 
-let get_pp_entries (type a) (t : a t) =
+let get_pp_entries (type a) (t : a t) () entries =
   let module Entry = (val snd t) in
-  fun () entries -> List.map Entry.show entries |> String.concat "\n"
+  List.map Entry.show entries |> String.concat "\n"
