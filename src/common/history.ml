@@ -10,8 +10,8 @@ type 'a t = (module Accessor.S) * (module ENTRY with type t = 'a)
 
 open Lwt.Syntax
 
-let create (type a) ~path (module Entry : ENTRY with type t = a) : a t =
-  (Accessor.make path, (module Entry))
+let create (type a) ~fname (module Entry : ENTRY with type t = a) : a t =
+  (Accessor.make Cache fname, (module Entry))
 
 let get (type a) (((module CacheAcc), (module Entry)) : a t) =
   Lwt.catch

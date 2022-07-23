@@ -8,7 +8,7 @@ end
 
 type 'a t
 
-val create : path:string -> (module ENTRY with type t = 'a) -> 'a t
+val create : fname:string -> (module ENTRY with type t = 'a) -> 'a t
 val get : 'a t -> 'a list Lwt.t
 val push : 'a t -> 'a -> unit Lwt.t
 val search_from_regex : 'a t -> string -> 'a list Lwt.t

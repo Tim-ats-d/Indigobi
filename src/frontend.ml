@@ -9,7 +9,7 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   open Lwt.Syntax
 
   let hist =
-    History.create ~path:Dir.cache_dir
+    History.create ~fname:"history"
       (module struct
         include Sexplib.Conv
 
