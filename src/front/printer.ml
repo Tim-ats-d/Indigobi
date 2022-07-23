@@ -1,5 +1,5 @@
 module type S = sig
-  val stylize_gemini : Gemini.Text.line -> LTerm_text.t
+  val stylize_gemini : Gemini.Gemtext.line -> LTerm_text.t
   val stylize_prompt : string -> LTerm_text.t
   val stylize_warning : string -> LTerm_text.t
   val stylize_error : string -> LTerm_text.t
@@ -9,7 +9,7 @@ module Make (Theme : Config.Theme.S) : S = struct
   module Color = Config.Color
 
   let stylize_gemini = function
-    | Gemini.Text.Text txt -> LTerm_text.stylise txt Theme.text
+    | Gemini.Gemtext.Text txt -> LTerm_text.stylise txt Theme.text
     | Link { url; name } ->
         LTerm_text.eval
           [

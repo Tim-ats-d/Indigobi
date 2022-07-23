@@ -1,4 +1,4 @@
-open Indigobi.Gemini.Text
+open Indigobi.Gemini.Gemtext
 
 let url_parsing () =
   let _ =
