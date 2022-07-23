@@ -8,16 +8,24 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   S = struct
   open Lwt.Syntax
 
-  let hist =
-    History.create ~fname:"history"
-      (module struct
-        include Sexplib.Conv
+  module HistEntry = struct
+    include Sexplib.Conv
 
-        type t = string [@@deriving sexp]
+    type t = Urllib.t = {
+      scheme : string;
+      domain : string;
+      port : int;
+      path : string;
+      query : string;
+    }
+    [@@deriving eq, sexp]
 
-        let show t = t
-        let to_string t = t
-      end)
+    let from_string str = Urllib.parse str ""
+    let to_string = Urllib.to_string
+    let show = Urllib.to_string
+  end
+
+  let hist = History.create ~fname:"history" (module HistEntry)
 
   let search addr ~raw ~certificate =
     let url = Urllib.parse addr "" in
@@ -52,7 +60,7 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
         match address with
         | None -> Handler.handle_err @@ `CommonErr `NoUrlProvided
         | Some addr ->
-            let* () = History.push hist addr in
+            let* () = History.push hist @@ HistEntry.from_string addr in
             let timeout = Lwt_unix.sleep timeout in
             Lwt.pick [ timeout; search addr ~raw ~certificate ])
 end

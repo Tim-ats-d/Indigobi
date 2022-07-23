@@ -1,6 +1,6 @@
 module type S = sig
   val stylize_gemini :
-    history:string Common.History.t -> Gemini.Text.line -> LTerm_text.t Lwt.t
+    history:'a Common.History.t -> Gemini.Text.line -> LTerm_text.t Lwt.t
 
   val stylize_prompt : string -> LTerm_text.t
   val stylize_warning : string -> LTerm_text.t
@@ -11,11 +11,13 @@ module Make (Theme : Config.Theme.S) : S = struct
   module Color = Config.Color
   open Lwt.Syntax
 
-  let stylize_gemini ~history = function
+  let stylize_gemini (type a) ~(history : a Common.History.t) = function
     | Gemini.Text.Text txt -> Lwt.return @@ LTerm_text.stylise txt Theme.text
     | Link { url; name } ->
-        let* urls = Common.History.get history in
-        let is_visited = List.mem url urls in
+        let module HistEntry = (val Common.History.entry history) in
+        let* is_visited =
+          Common.History.mem history @@ HistEntry.from_string url
+        in
         let colored_url =
           LTerm_text.stylise url
           @@ if is_visited then Theme.visited_link else Theme.link

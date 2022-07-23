@@ -1,6 +1,9 @@
 module type ENTRY = sig
   type t
 
+  val from_string : string -> t
+
+  include Types.EQUAL with type t := t
   include Types.STRINGABLE with type t := t
   include Types.SHOWABLE with type t := t
   include Types.SEXPABLE with type t := t
@@ -12,6 +15,8 @@ open Lwt.Syntax
 
 let create (type a) ~fname (module Entry : ENTRY with type t = a) : a t =
   (Accessor.make Cache fname, (module Entry))
+
+let entry (type a) (t : a t) = snd t
 
 let get (type a) (((module CacheAcc), (module Entry)) : a t) =
   Lwt.catch
@@ -39,6 +44,10 @@ let save (type a) (((module CacheAcc), (module Entry)) : a t) entries =
 let push t entry =
   let* entries = get t in
   save t (entry :: entries)
+
+let mem (type a) (t : a t) entry =
+  let* entries = get t in
+  Lwt.return @@ List.mem entry entries
 
 let search_from_regex (type a) (t : a t) re =
   let module Entry = (val snd t) in

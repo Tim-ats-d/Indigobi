@@ -1,3 +1,9 @@
+module type EQUAL = sig
+  type t
+
+  val equal : t -> t -> bool
+end
+
 module type PPABLE = sig
   type t
 
