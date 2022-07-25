@@ -6,11 +6,26 @@ end
 
 module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   S = struct
-  module Hist = History.Make (struct
-    let path = Dir.history_path
-  end)
-
   open Lwt.Syntax
+
+  module HistEntry = struct
+    include Sexplib.Conv
+
+    type t = Urllib.t = {
+      scheme : string;
+      domain : string;
+      port : int;
+      path : string;
+      query : string;
+    }
+    [@@deriving eq, sexp]
+
+    let from_string str = Urllib.parse str ""
+    let to_string = Urllib.to_string
+    let show = Urllib.to_string
+  end
+
+  let hist = History.create ~fname:"history" (module HistEntry)
 
   let search addr ~raw ~certificate =
     let url = Urllib.parse addr "" in
@@ -21,7 +36,10 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     match result with
     | Ok ({ Mime.media_type = Gemini; _ }, body) ->
         if raw then Handler.handle_text body
-        else Handler.handle_gemini @@ Gemini.Gemtext.parse body
+        else
+          Handler.handle_gemini
+            Front.Context.{ current_url = url; history = hist }
+          @@ Gemini.Gemtext.parse body
     | Ok ({ Mime.media_type = Text txt; _ }, body) ->
         Handler.handle_text body ~typ:txt
     | Ok ({ Mime.media_type = Other mime; _ }, body) ->
@@ -34,18 +52,20 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     | Error ((`CliErrUnknownSubCmd _ | `CliErrBadTimeoutFormat) as err) ->
         Handler.handle_err @@ `CommonErr err
     | Error (`CliErrUsageMsg msg) -> Handler.handle_text msg
-    | Ok (History { mode = `Del re }) -> Hist.del_from_regex re
+    | Ok (History { mode = `Del re }) -> History.del_from_regex hist re
     | Ok (History { mode = `Display }) ->
-        let* hist = Hist.get_all () in
-        LTerm.printlf "%a%!" Hist.pp hist
+        let* entries = History.get hist in
+        LTerm.printlf "%a%!" (History.get_pp_entries hist) entries
     | Ok (History { mode = `Search re }) ->
-        let* hist = Hist.search_from_regex re in
-        LTerm.printlf "%a%!" Hist.pp hist
+        let* entries = History.search_from_regex hist re in
+        LTerm.printlf "%a%!" (History.get_pp_entries hist) entries
     | Ok (Search { address; raw; certificate; timeout }) -> (
         match address with
         | None -> Handler.handle_err @@ `CommonErr `NoUrlProvided
         | Some addr ->
-            let* () = Hist.push addr in
-            let timeout = Lwt_unix.sleep timeout in
-            Lwt.pick [ timeout; search addr ~raw ~certificate ])
+            Lwt.finalize
+              (fun () ->
+                let timeout = Lwt_unix.sleep timeout in
+                Lwt.pick [ timeout; search addr ~raw ~certificate ])
+              (fun () -> History.push hist @@ HistEntry.from_string addr))
 end

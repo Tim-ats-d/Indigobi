@@ -16,36 +16,43 @@ let encode url =
   in
   String.fold_left convert_char (Buffer.create 101) url |> Buffer.contents
 
-let parse url host =
-  let scheme_re = Str.regexp "\\(.+\\)://\\(.+\\)"
-  and domain_re =
+module Re = struct
+  let scheme = Str.regexp "\\(.+\\)://\\(.+\\)"
+
+  let domain =
     Str.regexp "\\([^/:\\?]*\\)\\(:[0-9]+\\)?\\(/[^?]*\\)?\\(\\?\\(.+\\)\\)?"
-  and port_re = Str.regexp ".*:\\([0-9]+\\)"
-  and path_re = Str.regexp ".*/\\(.*\\)"
-  and query_re = Str.regexp ".*\\?\\(.+\\)" in
+
+  let port = Str.regexp ".*:\\([0-9]+\\)"
+  let path = Str.regexp ".*/\\(.*\\)"
+  let query = Str.regexp ".*\\?\\(.+\\)"
+end
+
+let replace_path u u' = { u with path = u'.path }
+
+let parse url host =
   let scheme =
-    if Str.string_match scheme_re url 0 then
-      Str.replace_first scheme_re "\\1" url
+    if Str.string_match Re.scheme url 0 then
+      Str.replace_first Re.scheme "\\1" url
     else "gemini"
   and right_part =
-    if Str.string_match scheme_re url 0 then
-      Str.replace_first scheme_re "\\2" url
+    if Str.string_match Re.scheme url 0 then
+      Str.replace_first Re.scheme "\\2" url
     else url
   in
-  let domain = Str.replace_first domain_re "\\1" right_part
+  let domain = Str.replace_first Re.domain "\\1" right_part
   and port =
-    if Str.string_match port_re right_part 0 then
-      Str.replace_first domain_re "\\2" right_part
-      |> Str.replace_first port_re "\\1"
+    if Str.string_match Re.port right_part 0 then
+      Str.replace_first Re.domain "\\2" right_part
+      |> Str.replace_first Re.port "\\1"
       |> int_of_string
     else 1965
   and path =
-    if Str.string_match path_re right_part 0 then
-      Str.replace_first domain_re "\\3" right_part
+    if Str.string_match Re.path right_part 0 then
+      Str.replace_first Re.domain "\\3" right_part
     else "/"
   and query =
-    if Str.string_match query_re right_part 0 then
-      Str.replace_first domain_re "\\5" right_part |> encode
+    if Str.string_match Re.query right_part 0 then
+      Str.replace_first Re.domain "\\5" right_part |> encode
     else ""
   in
   {
