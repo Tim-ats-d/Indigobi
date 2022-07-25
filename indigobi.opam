@@ -14,7 +14,7 @@ depends: [
   "lwt_ssl" {>= "1.1"}
   "ppx_sexp_conv" {>= "v0.15.1"}
   "ppx_system" {>= "1.0"}
-  "ssl" {>= "0.5.10"}
+  "ssl" {>= "0.5.11"}
   "ocaml" {>= "4.13"}
   "odoc" {with-doc}
 ]
