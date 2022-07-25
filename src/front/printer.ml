@@ -19,7 +19,7 @@ module Make (Theme : Config.Theme.S) : S = struct
                                   with type t = a)
         in
         let url_obj =
-          Urllib.(parse url "" |> replace_path current_url |> to_string)
+          Lib.Url.(parse url "" |> replace_path current_url |> to_string)
         in
         let* is_visited =
           History.mem history @@ HistEntry.from_string url_obj

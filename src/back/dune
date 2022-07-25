@@ -1,3 +1,3 @@
 (library
  (name back)
- (libraries common gemini lwt lwt_ssl ssl unix))
+ (libraries common gemini lib lwt lwt_ssl ssl unix))

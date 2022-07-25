@@ -9,7 +9,7 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   module HistEntry = struct
     open Sexplib.Conv
 
-    type t = Urllib.t = {
+    type t = Lib.Url.t = {
       scheme : string;
       domain : string;
       port : int;
@@ -18,9 +18,9 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     }
     [@@deriving eq, sexp]
 
-    let from_string = Fun.flip Urllib.parse ""
-    let to_string = Urllib.to_string
-    let show = Urllib.to_string
+    let from_string = Fun.flip Lib.Url.parse ""
+    let to_string = Lib.Url.to_string
+    let show = to_string
   end
 
   let hist = History.create ~fname:"history" (module HistEntry)
@@ -28,9 +28,9 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   open Lwt.Syntax
 
   let search addr ~raw ~certificate =
-    let url = Urllib.parse addr "" in
+    let url = Lib.Url.parse addr "" in
     let* result =
-      Backend.get ~url:(Urllib.to_string url) ~host:url.domain ~port:url.port
+      Backend.get ~url:(Lib.Url.to_string url) ~host:url.domain ~port:url.port
         ~cert:certificate
     in
     match result with

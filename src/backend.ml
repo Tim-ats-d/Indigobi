@@ -34,7 +34,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
             Lwt_result.ok @@ Lwt.return (Mime.parse meta, body)
         | `Redirect (meta, _) ->
             get
-              ~url:Urllib.(to_string @@ parse meta req.host)
+              ~url:Lib.Url.(to_string @@ parse meta req.host)
               ~host:req.host ~port:req.port ~cert:req.cert
         | #Gemini.Status.err as err -> Lwt_result.fail err)
 

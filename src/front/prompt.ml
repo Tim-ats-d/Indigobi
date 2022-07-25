@@ -1,5 +1,3 @@
-open Common
-
 module type S = sig
   val prompt : string -> string Lwt.t
   val prompt_sensitive : string -> string Lwt.t
@@ -14,7 +12,7 @@ module Make (Printer : Printer.S) = struct
     let* () = LTerm.flush term in
     let* user_input = Lwt_io.(read_line stdin) in
     let* () = LTerm.clear_line_prev term in
-    Lwt.return @@ Urllib.encode @@ user_input
+    Lwt.return @@ Lib.Url.encode user_input
 
   class hidden_read ~prompt term =
     object (self)
@@ -34,5 +32,5 @@ module Make (Printer : Printer.S) = struct
     in
     let* () = LTerm.flush term in
     let* () = LTerm.clear_line_prev term in
-    Lwt.return @@ Urllib.encode @@ Zed_string.to_utf8 input
+    Zed_string.to_utf8 input |> Lib.Url.encode |> Lwt.return
 end

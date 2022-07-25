@@ -1,4 +1,4 @@
-open Indigobi.Common.Urllib
+open Indigobi.Lib.Url
 
 let pass () =
   assert (

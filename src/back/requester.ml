@@ -11,11 +11,11 @@ module Default : S = struct
   open Lwt.Syntax
 
   let init req =
-    let* () = Common.Log.debug "Creating TLS context" in
+    let* () = Lib.Log.debug "Creating TLS context" in
     let ctx = Ssl.create_context TLSv1_2 Client_context in
     let* () =
       if req.Gemini.Request.cert <> "" then (
-        let* () = Common.Log.debug "Using client certificate" in
+        let* () = Lib.Log.debug "Using client certificate" in
         let cert_re =
           Str.regexp
             "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
@@ -27,21 +27,21 @@ module Default : S = struct
         Lwt.return_unit)
       else Lwt.return_unit
     in
-    let* () = Common.Log.debug "Creating socket" in
+    let* () = Lib.Log.debug "Creating socket" in
     let socket =
       Lwt_unix.socket (Unix.domain_of_sockaddr req.addr.ai_addr) SOCK_STREAM 0
     in
-    let* () = Common.Log.debug "Connecting UNIX socket to address" in
+    let* () = Lib.Log.debug "Connecting UNIX socket to address" in
     let* () = Lwt_unix.connect socket req.addr.ai_addr in
     let* () =
-      Common.Log.debug "Embedding UNIX socket using context into TLS socket"
+      Lib.Log.debug "Embedding UNIX socket using context into TLS socket"
     in
     let ssl = Lwt_ssl.embed_uninitialized_socket socket ctx in
-    let* () = Common.Log.debugf "SNI extension (%s)" req.host in
+    let* () = Lib.Log.debugf "SNI extension (%s)" req.host in
     Ssl.set_client_SNI_hostname
       (Lwt_ssl.ssl_socket_of_uninitialized_socket ssl)
       req.host;
-    let* () = Common.Log.debug "Connecting to socket" in
+    let* () = Lib.Log.debug "Connecting to socket" in
     Lwt_ssl.ssl_perform_handshake ssl
 
   let close socket = Lwt_ssl.close socket
@@ -81,7 +81,7 @@ module Default : S = struct
           | Ssl.Read_error Error_zero_return | End_of_file ->
               Lwt.return @@ Buffer.contents buf
           | Ssl.Read_error Error_ssl ->
-              let* () = Common.Log.warn "SSL error, some data may be missing" in
+              let* () = Lib.Log.warn "SSL error, some data may be missing" in
               Lwt.return @@ Buffer.contents buf
           | exn -> Lwt.fail exn)
     in
