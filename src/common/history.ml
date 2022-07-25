@@ -59,4 +59,4 @@ let del_from_regex (type a) (t : a t) re =
 
 let get_pp_entries (type a) (t : a t) () entries =
   let module Entry = (val snd t) in
-  List.map Entry.show entries |> String.concat "\n"
+  String.concat "\n" @@ List.map Entry.show entries

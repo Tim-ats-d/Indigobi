@@ -6,10 +6,8 @@ end
 
 module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
   S = struct
-  open Lwt.Syntax
-
   module HistEntry = struct
-    include Sexplib.Conv
+    open Sexplib.Conv
 
     type t = Urllib.t = {
       scheme : string;
@@ -20,12 +18,14 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     }
     [@@deriving eq, sexp]
 
-    let from_string str = Urllib.parse str ""
+    let from_string = Fun.flip Urllib.parse ""
     let to_string = Urllib.to_string
     let show = Urllib.to_string
   end
 
   let hist = History.create ~fname:"history" (module HistEntry)
+
+  open Lwt.Syntax
 
   let search addr ~raw ~certificate =
     let url = Urllib.parse addr "" in
