@@ -6,20 +6,30 @@ end
 module Location = struct
   type t = Cache | Config
 
+  let home_dir =
+    Sys.getenv [%system { default = "HOME"; win32 = "USERPROFILE" }]
+
+  let cache_dir =
+    Filename.concat
+      [%system
+        {
+          darwin = "Library/Caches";
+          unix = ".cache";
+          win32 = "AppData\\Local\\Microsoft\\Windows";
+        }]
+      [%system { darwin = "Indigobi"; unix = "indigobi"; win32 = "INetCache" }]
+
+  let config_dir =
+    [%system
+      {
+        darwin = "Library/Preferences/indigobi.plist";
+        unix = ".config/indigobi";
+        win32 = "AppData\\Local";
+      }]
+
   let of_string t =
-    Filename.concat (Sys.getenv "HOME")
-    @@
-    match t with
-    | Cache ->
-        Filename.concat
-          [%system { darwin = "Library/Caches"; unix = ".cache" }]
-          [%system { darwin = "Indigobi"; unix = "indigobi" }]
-    | Config ->
-        [%system
-          {
-            darwin = "Library/Preferences/indigobi.plist";
-            unix = ".config/indigobi";
-          }]
+    Filename.concat home_dir
+    @@ match t with Cache -> cache_dir | Config -> config_dir
 end
 
 let make loc fname =
