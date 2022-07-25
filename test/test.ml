@@ -1,3 +1,3 @@
 let () =
-  Gtext.pass ();
+  Gemtext.pass ();
   Urllib.pass ()

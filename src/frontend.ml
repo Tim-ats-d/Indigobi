@@ -39,7 +39,7 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
         else
           Handler.handle_gemini
             Front.Context.{ current_url = url; history = hist }
-          @@ Gemini.Text.parse body
+          @@ Gemini.Gemtext.parse body
     | Ok ({ Mime.media_type = Text txt; _ }, body) ->
         Handler.handle_text body ~typ:txt
     | Ok ({ Mime.media_type = Other mime; _ }, body) ->

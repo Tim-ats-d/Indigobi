@@ -1,6 +1,6 @@
 module type S = sig
   val stylize_gemini :
-    ctx:'a Context.t -> Gemini.Text.line -> LTerm_text.t Lwt.t
+    ctx:'a Context.t -> Gemini.Gemtext.line -> LTerm_text.t Lwt.t
 
   val stylize_prompt : string -> LTerm_text.t
   val stylize_warning : string -> LTerm_text.t
@@ -13,7 +13,7 @@ module Make (Theme : Config.Theme.S) : S = struct
   open Common
 
   let stylize_gemini (type a) ~ctx:{ Context.current_url; history } = function
-    | Gemini.Text.Text txt -> Lwt.return @@ LTerm_text.stylise txt Theme.text
+    | Gemini.Gemtext.Text txt -> Lwt.return @@ LTerm_text.stylise txt Theme.text
     | Link { url; name } ->
         let module HistEntry = (val History.entry history : History.ENTRY
                                   with type t = a)
