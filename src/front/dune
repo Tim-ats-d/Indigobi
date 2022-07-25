@@ -2,4 +2,5 @@
  (name front)
  (preprocess
   (pps ppx_system))
+ (modules_without_implementation context)
  (libraries common config gemini lambda-term))

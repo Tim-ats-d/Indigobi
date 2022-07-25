@@ -7,5 +7,6 @@ type t = {
 }
 
 val encode : string -> string
+val replace_path : t -> t -> t
 val parse : string -> string -> t
 val to_string : t -> string

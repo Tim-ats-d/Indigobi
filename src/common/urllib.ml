@@ -27,6 +27,8 @@ module Re = struct
   let query = Str.regexp ".*\\?\\(.+\\)"
 end
 
+let replace_path u u' = { u with path = u'.path }
+
 let parse url host =
   let scheme =
     if Str.string_match Re.scheme url 0 then

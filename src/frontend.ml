@@ -36,7 +36,10 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     match result with
     | Ok ({ Mime.media_type = Gemini; _ }, body) ->
         if raw then Handler.handle_text body
-        else Handler.handle_gemini ~history:hist @@ Gemini.Text.parse body
+        else
+          Handler.handle_gemini
+            Front.Context.{ current_url = url; history = hist }
+          @@ Gemini.Text.parse body
     | Ok ({ Mime.media_type = Text txt; _ }, body) ->
         Handler.handle_text body ~typ:txt
     | Ok ({ Mime.media_type = Other mime; _ }, body) ->
