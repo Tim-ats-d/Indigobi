@@ -19,22 +19,12 @@ let create (type a) ~fname (module Entry : ENTRY with type t = a) : a t =
 let entry (type a) (t : a t) = snd t
 
 let get (type a) (((module CacheAcc), (module Entry)) : a t) =
-  Lwt.catch
-    (fun () ->
-      let* content = CacheAcc.read () in
-      match content with
-      | None ->
-          let* () = CacheAcc.write "()" in
-          Lwt.return_nil
-      | Some c ->
-          c |> Sexplib.Sexp.of_string
-          |> Sexplib.Conv.list_of_sexp Entry.t_of_sexp
-          |> Lwt.return)
-    (function
-      | Failure _ | Sexplib.Sexp.Parse_error _ ->
-          let* () = Log.err "History file is corrupted" in
-          Lwt.return_nil
-      | exn -> Lwt.fail exn)
+  let* content = CacheAcc.read () in
+  match content with
+  | None ->
+      let* () = CacheAcc.write "()" in
+      Lwt.return_nil
+  | Some c -> c |> Sexplib.Conv.list_of_sexp Entry.t_of_sexp |> Lwt.return
 
 let save (type a) (((module CacheAcc), (module Entry)) : a t) entries =
   CacheAcc.write

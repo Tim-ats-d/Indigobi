@@ -1,5 +1,5 @@
 module type S = sig
-  val read : unit -> string option Lwt.t
+  val read : unit -> Sexplib.Sexp.t option Lwt.t
   val write : string -> unit Lwt.t
 end
 

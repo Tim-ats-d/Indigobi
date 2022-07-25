@@ -1,5 +1,5 @@
 module type S = sig
-  val read : unit -> string option Lwt.t
+  val read : unit -> Sexplib.Sexp.t option Lwt.t
   val write : string -> unit Lwt.t
 end
 
@@ -33,21 +33,24 @@ let make loc fname =
       if test then Lwt.return_unit
       else
         let* () = Lwt_unix.mkdir loc 0o751 in
-        Log.infof "Create %s" loc
+        Log.infof "Create %S" loc
 
     let read () =
       Lwt.catch
         (fun () ->
           Lwt_io.with_file path ~mode:Input (fun inc ->
               let* content = Lwt_io.read inc in
-              Lwt.return_some content))
+              Lwt.return_some @@ Sexplib.Sexp.of_string content))
         (function
           | Unix.Unix_error (ENOENT, _, _) ->
               let* () = touch_dir_if_non_existant () in
               let* () =
                 Lwt_io.with_file path ~mode:Output (fun _ ->
-                    Log.infof "Create %s" path)
+                    Log.infof "Create %S" path)
               in
+              Lwt.return_none
+          | Failure _ | Sexplib.Sexp.Parse_error _ ->
+              let* () = Log.errf "%S is corrupted" fname in
               Lwt.return_none
           | exn -> Lwt.fail exn)
 
