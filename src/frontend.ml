@@ -63,7 +63,9 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
         match address with
         | None -> Handler.handle_err @@ `CommonErr `NoUrlProvided
         | Some addr ->
-            let* () = History.push hist @@ HistEntry.from_string addr in
-            let timeout = Lwt_unix.sleep timeout in
-            Lwt.pick [ timeout; search addr ~raw ~certificate ])
+            Lwt.finalize
+              (fun () ->
+                let timeout = Lwt_unix.sleep timeout in
+                Lwt.pick [ timeout; search addr ~raw ~certificate ])
+              (fun () -> History.push hist @@ HistEntry.from_string addr))
 end
