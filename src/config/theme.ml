@@ -109,8 +109,8 @@ let default =
 (visited_link ((color ((fg 9c4bbf) (bg ""))) (attr ())))
 (preformat ((color ((fg f9d64a) (bg ""))) (attr ())))
 (h1 ((color ((fg d33c2e) (bg ""))) (attr (bold))))
-(h2 ((color ((fg 097931) (bg ""))) (attr ())))
-(h3 ((color ((fg 002caa) (bg ""))) (attr ())))
+(h2 ((color ((fg 097931) (bg ""))) (attr (bold))))
+(h3 ((color ((fg 002caa) (bg ""))) (attr (bold))))
 (list_item
    ((bullet ((color ((fg "") (bg ""))) (attr (bold))))
       (item ((color ((fg "") (bg ""))) (attr ())))))
