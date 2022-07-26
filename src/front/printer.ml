@@ -8,12 +8,13 @@ module type S = sig
 end
 
 module Make (Theme : Config.Theme.S) : S = struct
-  module Color = Config.Color
-  open Lwt.Syntax
   open Common
+  open Lwt.Syntax
 
-  let stylize_gemini (type a) ~ctx:{ Context.current_url; history } = function
-    | Gemini.Gemtext.Text txt -> Lwt.return @@ LTerm_text.stylise txt Theme.text
+  let stylize_gemini (type a) ~ctx:{ Context.current_url; history } =
+    let lwt_stylize str style = Lwt.return @@ LTerm_text.stylise str style in
+    function
+    | Gemini.Gemtext.Text txt -> lwt_stylize txt Theme.text
     | Link { url; name } ->
         let module HistEntry = (val History.entry history : History.ENTRY
                                   with type t = a)
@@ -24,51 +25,31 @@ module Make (Theme : Config.Theme.S) : S = struct
         let* is_visited =
           History.mem history @@ HistEntry.from_string url_obj
         in
-        let url_color = if is_visited then Theme.visited_link else Theme.link in
+        let url_color = if is_visited then Theme.visited_link else Theme.link_url in
         Lwt.return
         @@ Array.concat
              [
-               LTerm_text.eval [ B_bold true; S "⇒ "; B_underline true ];
+               LTerm_text.stylise " ⇒ " Theme.link_arrow;
                LTerm_text.stylise url url_color;
-               LTerm_text.eval
-                 [
-                   E_underline;
-                   S " ";
-                   B_fg Color.default;
-                   S (Option.value name ~default:"");
-                   E_fg;
-                   E_bold;
-                 ];
+               LTerm_text.eval [ S " " ];
+               LTerm_text.stylise
+                 (Option.value name ~default:"")
+                 Theme.link_name;
              ]
-    | Preformat { text; _ } ->
-        Lwt.return @@ LTerm_text.stylise text Theme.preformat
-    | Heading (`H1, h) -> Lwt.return @@ LTerm_text.stylise h Theme.h1
-    | Heading (`H2, h) -> Lwt.return @@ LTerm_text.stylise h Theme.h2
-    | Heading (`H3, h) -> Lwt.return @@ LTerm_text.stylise h Theme.h3
+    | Preformat { text; _ } -> lwt_stylize text Theme.preformat
+    | Heading (`H1, h) -> lwt_stylize h Theme.h1
+    | Heading (`H2, h) -> lwt_stylize h Theme.h2
+    | Heading (`H3, h) -> lwt_stylize h Theme.h3
     | ListItem item ->
         Lwt.return
-        @@ LTerm_text.eval
-             [
-               S " ";
-               B_bold true;
-               B_fg Color.default;
-               S " ";
-               E_fg;
-               E_bold;
-               S " ";
-               S item;
-             ]
+        @@ Array.append
+             (LTerm_text.stylise " - " Theme.list_bullet)
+             (LTerm_text.stylise item Theme.list_item)
     | Quote q ->
         Lwt.return
-        @@ LTerm_text.eval
-             [
-               B_fg Color.dark_grey;
-               S " █ ";
-               E_fg;
-               B_fg Color.light_grey;
-               S q;
-               E_fg;
-             ]
+        @@ Array.append
+             (LTerm_text.stylise " █ " Theme.quote_indent)
+             (LTerm_text.stylise q Theme.quotation)
 
   let stylize_error = Fun.flip LTerm_text.stylise Theme.error
   let stylize_prompt meta = LTerm_text.stylise (meta ^ " ") Theme.prompt
