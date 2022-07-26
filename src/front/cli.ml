@@ -19,7 +19,13 @@ module type S = sig
 end
 
 module Default : S = struct
-  let speclist = ref []
+  let speclist =
+    ref
+      [
+        ("-help", Arg.Unit (fun () -> ()), "Display help and exit");
+        ("--help", Arg.Unit (fun () -> ()), "Display help and exit");
+      ]
+
   let hist = { mode = `Display }
 
   let specs_hist =
@@ -61,11 +67,11 @@ module Default : S = struct
     match !sub_cmd with
     | None when String.equal str "search" ->
         sub_cmd := Some `Search;
-        speclist := specs_search;
+        speclist := !speclist @ specs_search;
         search.address <- Some Sys.argv.(2)
     | None when String.equal str "hist" ->
         sub_cmd := Some `History;
-        speclist := specs_hist
+        speclist := !speclist @ specs_hist
     | None when not (List.mem Sys.argv.(1) [ "hist"; "search" ]) ->
         raise_notrace @@ UnknownSubCmd str
     | _ -> ()
@@ -75,8 +81,15 @@ module Default : S = struct
     let error_msg () =
       match !sub_cmd with
       | None ->
+          let msg =
+            Printf.sprintf
+              "%s\n\n\
+               Command: hist, search\n\
+              \  Type `%s CMD --help` for display the list of command options."
+              usage Sys.argv.(0)
+          in
           speclist := specs_hist @ specs_search;
-          Error (`CliErrUsageMsg (Arg.usage_string !speclist usage))
+          Error (`CliErrUsageMsg msg)
       | Some `History -> Ok (History hist)
       | Some `Search -> Ok (Search search)
     in
