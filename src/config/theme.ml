@@ -120,7 +120,7 @@ let default =
 (meta
    ((prompt ((color ((fg 9c4bbf) (bg ""))) (attr ())))
       (warning ((color ((fg feaf2f) (bg ""))) (attr ())))
-      (error ((color ((fg b1dddd) (bg ""))) (attr ()))))))
+      (error ((color ((fg b10d0d) (bg ""))) (attr ()))))))
 |}
 
 module Default = (val Sexplib.Sexp.of_string default |> t_of_sexp |> packed)
