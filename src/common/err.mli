@@ -1,7 +1,9 @@
 type status_code = [ `GracefulFail | `InvalidStatusCode of int ]
 
 type ssl_cert_error =
-  [ `MismatchedDomainNames of string * string | `CertificateExpired ]
+  [ `MismatchedDomainNames of string * string
+  | `CertificateExpired
+  | `UntrustedCertificate ]
 
 type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 

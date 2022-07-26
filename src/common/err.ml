@@ -1,7 +1,9 @@
 type status_code = [ `GracefulFail | `InvalidStatusCode of int ]
 
 type ssl_cert_error =
-  [ `MismatchedDomainNames of string * string | `CertificateExpired ]
+  [ `MismatchedDomainNames of string * string
+  | `CertificateExpired
+  | `UntrustedCertificate ]
 
 type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 
@@ -27,6 +29,7 @@ let pp () = function
         "mismatched domain names: '%s' (request), '%s' (certificate)" req_cn
         cert_cn
   | `CertificateExpired -> "certificate expired"
+  | `UntrustedCertificate -> "untrusted certificate"
   | `MalformedLink -> "malformed link"
   | `MalformedServerResponse -> "mal formed server response"
   | `NotFound -> "not found"
