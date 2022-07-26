@@ -38,7 +38,9 @@ module Default : S = struct
 
   let specs_search =
     [
-      ("--raw", Arg.Unit (fun () -> search.raw <- true), "Disable formatting");
+      ( "--raw",
+        Arg.Unit (fun () -> search.raw <- true),
+        "Disable Gemtext formatting" );
       ( "--cert",
         Arg.String (fun c -> search.certificate <- c),
         "Attach client certificate" );
@@ -64,22 +66,22 @@ module Default : S = struct
     | None when String.equal str "hist" ->
         sub_cmd := Some `History;
         speclist := specs_hist
-    | None when Sys.argv.(1) <> "hist" || Sys.argv.(1) <> "search" ->
+    | None when not (List.mem Sys.argv.(1) [ "hist"; "search" ]) ->
         raise_notrace @@ UnknownSubCmd str
     | _ -> ()
 
   let parse () =
-    let usage_msg =
-      Printf.sprintf "%s [ COMMAND ] [ OPTIONS ]..." Sys.argv.(0)
-    in
+    let usage = Printf.sprintf "%s [ COMMAND ] [ OPTIONS ]..." Sys.argv.(0) in
     let error_msg () =
       match !sub_cmd with
-      | None -> Error (`CliErrUsageMsg (Arg.usage_string !speclist usage_msg))
+      | None ->
+          speclist := specs_hist @ specs_search;
+          Error (`CliErrUsageMsg (Arg.usage_string !speclist usage))
       | Some `History -> Ok (History hist)
       | Some `Search -> Ok (Search search)
     in
     try
-      Arg.parse_dynamic speclist anon_fun usage_msg;
+      Arg.parse_dynamic speclist anon_fun usage;
       error_msg ()
     with
     | Invalid_argument _ -> error_msg ()
