@@ -9,13 +9,7 @@ and search = {
 }
 
 module type S = sig
-  val parse :
-    unit ->
-    ( t,
-      [> `CliErrBadTimeoutFormat
-      | `CliErrUnknownSubCmd of string
-      | `CliErrUsageMsg of string ] )
-    result
+  val parse : unit -> (t, Common.Err.cli) result
 end
 
 module Default : S
