@@ -17,4 +17,4 @@ module type S = sig
   val error : LTerm_style.t
 end
 
-module Default : S
+val get : unit -> (module S)

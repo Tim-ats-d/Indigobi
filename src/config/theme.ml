@@ -99,7 +99,7 @@ let packed
   end : S)
 
 let default =
-{|
+  {|
 ((name "")
 (text ((color ((fg "") (bg ""))) (attr ())))
 (link
@@ -124,3 +124,5 @@ let default =
 |}
 
 module Default = (val Sexplib.Sexp.of_string default |> t_of_sexp |> packed)
+
+let get () : (module S) = (module Default)

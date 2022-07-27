@@ -25,7 +25,9 @@ module Make (Theme : Config.Theme.S) : S = struct
         let* is_visited =
           History.mem history @@ HistEntry.from_string url_obj
         in
-        let url_color = if is_visited then Theme.visited_link else Theme.link_url in
+        let url_color =
+          if is_visited then Theme.visited_link else Theme.link_url
+        in
         Lwt.return
         @@ Array.concat
              [

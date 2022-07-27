@@ -48,7 +48,7 @@ module Make (ArgParser : Cli.S) : S = struct
     | Error (#Err.t as e) -> Handler.handle_err @@ `CommonErr e
 
   let launch () =
-    let module Printer = Printer.Make ((val Config.ThemeManager.get ())) in
+    let module Printer = Printer.Make ((val Config.Theme.get ())) in
     let module Handler = Handler.Make (Printer) in
     let module Back = Backend.Make (Prompt.Make (Printer)) (Requester.Default)
     in
