@@ -1,3 +1,8 @@
+type cli =
+  [ `CliErrBadTimeoutFormat
+  | `CliErrUnknownSubCmd of string
+  | `CliErrUsageMsg of string ]
+
 type status_code = [ `GracefulFail | `InvalidStatusCode of int ]
 type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 

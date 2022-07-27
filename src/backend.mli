@@ -1,5 +1,5 @@
 module type S = sig
-  val get :
+  val get_page :
     url:string ->
     host:string ->
     port:int ->

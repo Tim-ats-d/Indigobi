@@ -4,8 +4,7 @@ module type S = sig
   val launch : unit -> unit Lwt.t
 end
 
-module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
-  S = struct
+module Make (ArgParser : Cli.S) : S = struct
   module HistEntry = struct
     open Sexplib.Conv
 
@@ -27,10 +26,11 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
 
   open Lwt.Syntax
 
-  let search addr ~raw ~certificate =
+  let search (module Back : Backend.S) (module Handler : Handler.S) addr ~raw
+      ~certificate =
     let url = Lib.Url.parse addr "" in
     let* result =
-      Backend.get ~url:(Lib.Url.to_string url) ~host:url.domain ~port:url.port
+      Back.get_page ~url:(Lib.Url.to_string url) ~host:url.domain ~port:url.port
         ~cert:certificate
     in
     match result with
@@ -48,6 +48,10 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     | Error (#Err.t as e) -> Handler.handle_err @@ `CommonErr e
 
   let launch () =
+    let module Printer = Printer.Make ((val Config.ThemeManager.get ())) in
+    let module Handler = Handler.Make (Printer) in
+    let module Back = Backend.Make (Prompt.Make (Printer)) (Requester.Default)
+    in
     match ArgParser.parse () with
     | Error ((`CliErrUnknownSubCmd _ | `CliErrBadTimeoutFormat) as err) ->
         Handler.handle_err @@ `CommonErr err
@@ -66,6 +70,10 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
             Lwt.finalize
               (fun () ->
                 let timeout = Lwt_unix.sleep timeout in
-                Lwt.pick [ timeout; search addr ~raw ~certificate ])
+                Lwt.pick
+                  [
+                    timeout;
+                    search (module Back) (module Handler) addr ~raw ~certificate;
+                  ])
               (fun () -> History.push hist @@ HistEntry.from_string addr))
 end
