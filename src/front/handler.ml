@@ -38,7 +38,8 @@ module Make (Printer : Printer.S) : S = struct
     let* () = Lwt_io.write outc body in
     let launch_app =
       [|
-        [%system { darwin = "open"; default = "xdg-open"; win32 = "start" }]; fname;
+        [%system { darwin = "open"; default = "xdg-open"; win32 = "start" }];
+        fname;
       |]
     in
     let* _ = Lwt_process.exec ~stderr:`Close ("", launch_app) in
