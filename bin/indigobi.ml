@@ -1,0 +1,1 @@
+let () = Indigobi.main ()
