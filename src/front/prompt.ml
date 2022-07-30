@@ -37,19 +37,19 @@ module Make (Printer : Printer.S) = struct
 
   let prompt_bool meta =
     let rec run term =
-      let* () = LTerm.fprint term meta in
+      let* () = LTerm.fprint term @@ Printf.sprintf "%s [Y/n] " meta in
       let* event = LTerm.read_event term in
       match event with
       | LTerm_event.Key LTerm_key.{ code = Char ch; control = true; _ }
         when ch = Uchar.of_char 'c' ->
           exit 1
       | LTerm_event.Key LTerm_key.{ code = Char ch; _ } -> (
-          match Zed_utf8.singleton ch with
+          let res = Zed_utf8.singleton ch in
+          let* () = LTerm.fprint term @@ Printf.sprintf "%s\n" res in
+          match res with
           | "Y" | "y" -> Lwt.return_true
           | "N" | "n" -> Lwt.return_false
-          | _ ->
-              let* () = LTerm.fprint term "\n" in
-              run term)
+          | _ -> run term)
       | _ -> run term
     in
     let* term = Lazy.force LTerm.stdout in
