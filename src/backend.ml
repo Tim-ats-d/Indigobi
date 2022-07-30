@@ -6,44 +6,52 @@ module type S = sig
     host:string ->
     port:int ->
     cert:string ->
+    timeout:float ->
     (Mime.t * string, [> Err.back | Gemini.Status.err ]) Lwt_result.t
 end
 
 module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
   open Lwt.Syntax
 
-  let rec request req =
-    let tofu_cache = Accessor.make Cache "known_hosts" in
-    let* tofu_entry = Tofu.get_by_host tofu_cache req.Gemini.Request.host in
+  type 'a ssl_cert_verification_result =
+    | Invalid_certificate of ([> Err.ssl_cert_error | Gemini.Status.err ] as 'a)
+    | Valid_certificate
 
-    let* socket = Requester.init req in
-    let certificate =
-      Ssl.get_certificate @@ Option.get @@ Lwt_ssl.ssl_socket socket
-    in
+  let ssl_cert_verification host cert =
+    let tofu_cache = Accessor.make Cache "known_hosts" in
+    let* tofu_entry = Tofu.get_by_host tofu_cache host in
 
     let cn_re = Str.regexp "/CN=\\(.+\\)" in
-    let cert_cn =
-      Str.replace_first cn_re "\\1" @@ Ssl.get_subject certificate
-    in
+    let cert_cn = Str.replace_first cn_re "\\1" @@ Ssl.get_subject cert in
 
-    let expiration_date = Ssl.get_expiration_date certificate in
+    let expiration_date = Ssl.get_expiration_date cert in
     let today = Unix.gmtime @@ Unix.time () in
 
-    if cert_cn <> req.host then
-      Lwt_result.fail @@ `MismatchedDomainNames (req.host, cert_cn)
+    if cert_cn <> host then
+      if%lwt
+        Prompt.prompt_bool
+        @@ Printf.sprintf "Mismatched domain names (%s, %s), trust anyway?" host
+             cert_cn
+      then Lwt.return Valid_certificate
+      else
+        Lwt.return
+        @@ Invalid_certificate (`MismatchedDomainNames (host, cert_cn))
     else if
       expiration_date.tm_year > today.tm_year
       && expiration_date.tm_yday > today.tm_yday
-    then Lwt_result.fail `CertificateExpired
+    then
+      if%lwt Prompt.prompt_bool "Expired certificate, trust anyway?" then
+        Lwt.return Valid_certificate
+      else Lwt.return @@ Invalid_certificate `CertificateExpired
     else
+      let new_entry : Tofu.t =
+        {
+          host;
+          hash = Ssl.digest `SHA256 cert;
+          expiration_date = (expiration_date.tm_year, expiration_date.tm_yday);
+        }
+      in
       if%lwt
-        let new_entry : Tofu.t =
-          {
-            host = req.host;
-            hash = Ssl.digest `SHA256 certificate;
-            expiration_date = (expiration_date.tm_year, expiration_date.tm_yday);
-          }
-        in
         match tofu_entry with
         | None ->
             let* () = Tofu.save_entry tofu_cache new_entry in
@@ -56,13 +64,39 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
             then
               let* () = Tofu.save_entry tofu_cache new_entry in
               Lwt.return_false
-            else if String.equal e_hash @@ Ssl.digest `SHA256 certificate then
+            else if String.equal e_hash @@ Ssl.digest `SHA256 cert then
               Lwt.return_false
             else Lwt.return_true
-      then Lwt_result.fail `UntrustedCertificate
-      else
+      then
+        if%lwt
+          Prompt.prompt_bool
+            "Unknown certificate, replace the old one with this one?"
+        then
+          let* () = Tofu.save_entry tofu_cache new_entry in
+          Lwt.return Valid_certificate
+        else
+          if%lwt Prompt.prompt_bool "Trust it temporarily?" then
+            Lwt.return Valid_certificate
+          else Lwt.return @@ Invalid_certificate `UntrustedCertificate
+      else Lwt.return Valid_certificate
+
+  let rec request timeout req =
+    let socket = Requester.init req in
+    Lwt_timeout.(
+      create (int_of_float timeout) (fun () -> Lwt.cancel socket) |> start);
+    let* resolved_socket = socket in
+    let certificate =
+      Ssl.get_certificate @@ Option.get @@ Lwt_ssl.ssl_socket resolved_socket
+    in
+    let* verification =
+      ssl_cert_verification req.Gemini.Request.host certificate
+    in
+
+    match verification with
+    | Invalid_certificate err -> Lwt_result.fail err
+    | Valid_certificate -> (
         let* header =
-          Requester.fetch_header socket @@ Gemini.Request.to_string req
+          Requester.fetch_header resolved_socket @@ Gemini.Request.to_string req
         in
         match Gemini.Header.parse header with
         | Error (`MalformedHeader | `TooLongHeader) ->
@@ -74,18 +108,18 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                 let* input =
                   if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
                 in
-                request @@ Gemini.Request.attach_input req input
+                request timeout @@ Gemini.Request.attach_input req input
             | `Success ->
-                let* body = Requester.parse_body socket in
-                let* () = Requester.close socket in
+                let* body = Requester.parse_body resolved_socket in
+                let* () = Requester.close resolved_socket in
                 Lwt_result.ok @@ Lwt.return (Mime.parse meta, body)
             | `Redirect (meta, _) ->
                 get
                   ~url:Lib.Url.(to_string @@ parse meta req.host)
-                  ~host:req.host ~port:req.port ~cert:req.cert
-            | #Gemini.Status.err as err -> Lwt_result.fail err)
+                  ~host:req.host ~port:req.port ~cert:req.cert ~timeout
+            | #Gemini.Status.err as err -> Lwt_result.fail err))
 
-  and get ~url ~host ~port ~cert =
+  and get ~url ~host ~port ~cert ~timeout =
     Ssl.init ();
     let* adresses = Lwt_unix.getaddrinfo host (Int.to_string port) [] in
     match adresses with
@@ -103,7 +137,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                   in
                   match Gemini.Request.create url ~addr ~host ~port ~cert with
                   | None -> Lwt_result.fail `MalformedLink
-                  | Some r -> request r)
+                  | Some r -> request timeout r)
                 (function
                   | Unix.Unix_error _ -> Lwt_result.fail `NotFound
                   | exn -> Lwt.fail exn)
