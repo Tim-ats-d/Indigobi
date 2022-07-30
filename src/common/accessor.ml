@@ -14,7 +14,7 @@ module Location = struct
       [%system
         {
           darwin = "Library/Caches";
-          unix = ".cache";
+          default = ".cache";
           win32 = "AppData\\Local\\Microsoft\\Windows";
         }]
       [%system { darwin = "Indigobi"; unix = "indigobi"; win32 = "INetCache" }]

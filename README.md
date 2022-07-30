@@ -10,6 +10,7 @@ Indigobi is a WIP **Gemini client** written in OCaml.
 
 - Pretty gemini pages rendering.
 - External file in their default app opening.
+- Cross-platform (Works on Darwin, UNIX, Windows and *BSD).
 - Browsable history.
 
 #### Not yet implemented
