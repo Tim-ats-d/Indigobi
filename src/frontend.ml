@@ -27,11 +27,11 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
 
   open Lwt.Syntax
 
-  let search addr ~raw ~certificate =
+  let search addr ~raw ~certificate ~timeout =
     let url = Lib.Url.parse addr "" in
     let* result =
       Backend.get ~url:(Lib.Url.to_string url) ~host:url.domain ~port:url.port
-        ~cert:certificate
+        ~cert:certificate ~timeout
     in
     match result with
     | Ok ({ Mime.media_type = Gemini; _ }, body) ->
@@ -64,8 +64,6 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
         | None -> Handler.handle_err @@ `CommonErr `NoUrlProvided
         | Some addr ->
             Lwt.finalize
-              (fun () ->
-                let timeout = Lwt_unix.sleep timeout in
-                Lwt.pick [ timeout; search addr ~raw ~certificate ])
+              (fun () -> search addr ~raw ~certificate ~timeout)
               (fun () -> History.push hist @@ HistEntry.from_string addr))
 end
