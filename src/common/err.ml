@@ -13,6 +13,7 @@ type back =
   | `MalformedLink
   | `MalformedServerResponse
   | `NotFound
+  | `Timeout
   | `UnknownHostOrServiceName ]
 
 type front =
@@ -25,14 +26,14 @@ let pp () = function
   | `InvalidStatusCode code ->
       Printf.sprintf "server returns invalid status code \"%i\"" code
   | `MismatchedDomainNames (req_cn, cert_cn) ->
-      Printf.sprintf
-        "mismatched domain names: '%s' (request), '%s' (certificate)" req_cn
-        cert_cn
+      Printf.sprintf "mismatched domain names: %S (request), %S (certificate)"
+        req_cn cert_cn
   | `CertificateExpired -> "certificate expired"
   | `UntrustedCertificate -> "untrusted certificate"
   | `MalformedLink -> "malformed link"
   | `MalformedServerResponse -> "mal formed server response"
   | `NotFound -> "not found"
+  | `Timeout -> "timeout"
   | `NoUrlProvided -> "no url is provided"
   | `UnknownHostOrServiceName -> "unknown host or service name"
   | `CliErrBadTimeoutFormat -> "bad format for timeout"

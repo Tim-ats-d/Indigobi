@@ -13,6 +13,7 @@ type back =
   | `MalformedLink
   | `MalformedServerResponse
   | `NotFound
+  | `Timeout
   | `UnknownHostOrServiceName ]
 
 type front =

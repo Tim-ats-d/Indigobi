@@ -44,9 +44,9 @@ module Make (Printer : Printer.S) = struct
         when ch = Uchar.of_char 'c' ->
           exit 1
       | LTerm_event.Key LTerm_key.{ code = Char ch; _ } -> (
-          let res = Zed_utf8.singleton ch in
-          let* () = LTerm.fprint term @@ Printf.sprintf "%s\n" res in
-          match res with
+          let resp = Zed_utf8.singleton ch in
+          let* () = LTerm.fprintf term "%s\n" resp in
+          match resp with
           | "Y" | "y" -> Lwt.return_true
           | "N" | "n" -> Lwt.return_false
           | _ -> run term)

@@ -44,9 +44,9 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
         Lwt.return Valid_certificate
       else Lwt.return @@ Invalid_certificate `CertificateExpired
     else
-      let new_entry : Tofu.t =
+      let new_entry =
         {
-          host;
+          Tofu.host;
           hash = Ssl.digest `SHA256 cert;
           expiration_date = (expiration_date.tm_year, expiration_date.tm_yday);
         }
@@ -56,8 +56,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
         | None ->
             let* () = Tofu.save_entry tofu_cache new_entry in
             Lwt.return_false
-        | Some { host = _; hash = e_hash; expiration_date = e_expiration_date }
-          ->
+        | Some { hash = e_hash; expiration_date = e_expiration_date; _ } ->
             if
               fst e_expiration_date < today.tm_year
               && snd e_expiration_date < today.tm_yday
@@ -82,42 +81,49 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
 
   let rec request timeout req =
     let socket = Requester.init req in
-    Lwt_timeout.(
-      create (int_of_float timeout) (fun () -> Lwt.cancel socket) |> start);
-    let* resolved_socket = socket in
-    let certificate =
-      Ssl.get_certificate @@ Option.get @@ Lwt_ssl.ssl_socket resolved_socket
-    in
-    let* verification =
-      ssl_cert_verification req.Gemini.Request.host certificate
-    in
+    let make_request =
+      let* resolved_socket = socket in
+      let certificate =
+        Ssl.get_certificate @@ Option.get @@ Lwt_ssl.ssl_socket resolved_socket
+      in
+      let* verification =
+        ssl_cert_verification req.Gemini.Request.host certificate
+      in
 
-    match verification with
-    | Invalid_certificate err -> Lwt_result.fail err
-    | Valid_certificate -> (
-        let* header =
-          Requester.fetch_header resolved_socket @@ Gemini.Request.to_string req
-        in
-        match Gemini.Header.parse header with
-        | Error (`MalformedHeader | `TooLongHeader) ->
-            Lwt_result.fail `MalformedServerResponse
-        | Error (#Common.Err.status_code as err) -> Lwt_result.fail err
-        | Ok { status; meta } -> (
-            match status with
-            | `Input (meta, `Sensitive s) ->
-                let* input =
-                  if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
-                in
-                request timeout @@ Gemini.Request.attach_input req input
-            | `Success ->
-                let* body = Requester.parse_body resolved_socket in
-                let* () = Requester.close resolved_socket in
-                Lwt_result.ok @@ Lwt.return (Mime.parse meta, body)
-            | `Redirect (meta, _) ->
-                get
-                  ~url:Lib.Url.(to_string @@ parse meta req.host)
-                  ~host:req.host ~port:req.port ~cert:req.cert ~timeout
-            | #Gemini.Status.err as err -> Lwt_result.fail err))
+      match verification with
+      | Invalid_certificate err -> Lwt_result.fail err
+      | Valid_certificate -> (
+          let* header =
+            Requester.fetch_header resolved_socket
+            @@ Gemini.Request.to_string req
+          in
+          match Gemini.Header.parse header with
+          | Error (`MalformedHeader | `TooLongHeader) ->
+              Lwt_result.fail `MalformedServerResponse
+          | Error (#Common.Err.status_code as err) -> Lwt_result.fail err
+          | Ok { status; meta } -> (
+              match status with
+              | `Input (meta, `Sensitive s) ->
+                  let* input =
+                    if s then Prompt.prompt_sensitive meta
+                    else Prompt.prompt meta
+                  in
+                  request timeout @@ Gemini.Request.attach_input req input
+              | `Success ->
+                  let* body = Requester.parse_body resolved_socket in
+                  let* () = Requester.close resolved_socket in
+                  Lwt_result.ok @@ Lwt.return (Mime.parse meta, body)
+              | `Redirect (meta, _) ->
+                  get
+                    ~url:Lib.Url.(to_string @@ parse meta req.host)
+                    ~host:req.host ~port:req.port ~cert:req.cert ~timeout
+              | #Gemini.Status.err as err -> Lwt_result.fail err))
+    in
+    let timeout =
+      let* () = Lwt_unix.sleep timeout in
+      Lwt_result.fail `Timeout
+    in
+    Lwt.pick [ timeout; make_request ]
 
   and get ~url ~host ~port ~cert ~timeout =
     Ssl.init ();
