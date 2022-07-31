@@ -10,11 +10,13 @@ and line =
 
 and preformat = { alt : string option; text : string }
 
-let h1 = Str.regexp "#[ \t]*\\([^#].+\\)"
-and h2 = Str.regexp "##[ \t]*\\([^#].+\\)"
-and h3 = Str.regexp "###[ \t]*\\([^#].+\\)"
-and quote = Str.regexp ">[ \t]*\\(.+\\)"
-and item = Str.regexp "* \\(.*\\)"
+module Re = struct
+  let h1 = Str.regexp {|#[ \t]*\([^#].+\)|}
+  let h2 = Str.regexp {|##[ \t]*\([^#].+\)|}
+  let h3 = Str.regexp {|###[ \t]*\([^#].+\)|}
+  let quote = Str.regexp {|>[ \t]*\(.+\)|}
+  let item = Str.regexp {|"* \(.*\)|}
+end
 
 let parse str =
   let module S = String in
@@ -34,15 +36,15 @@ let parse str =
         else
           let x' =
             if x = "" then Text ""
-            else if Str.string_match h1 x 0 then
+            else if Str.string_match Re.h1 x 0 then
               Heading (`H1, Str.matched_group 1 x)
-            else if Str.string_match h2 x 0 then
+            else if Str.string_match Re.h2 x 0 then
               Heading (`H2, Str.matched_group 1 x)
-            else if Str.string_match h3 x 0 then
+            else if Str.string_match Re.h3 x 0 then
               Heading (`H3, Str.matched_group 1 x)
-            else if Str.string_match item x 0 then
+            else if Str.string_match Re.item x 0 then
               ListItem (Str.matched_group 1 x)
-            else if Str.string_match quote x 0 then
+            else if Str.string_match Re.quote x 0 then
               Quote (Str.matched_group 1 x)
             else
               let post = S.trim @@ S.sub x 2 (S.length x - 2) in

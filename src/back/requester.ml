@@ -10,17 +10,16 @@ end
 module Default : S = struct
   open Lwt.Syntax
 
+  let cert_re =
+    Str.regexp
+      {|\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\) \(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\)|}
+
   let init req =
     let* () = Lib.Log.debug "Creating TLS context" in
     let ctx = Ssl.create_context TLSv1_2 Client_context in
     let* () =
       if req.Gemini.Request.cert <> "" then (
         let* () = Lib.Log.debug "Using client certificate" in
-        let cert_re =
-          Str.regexp
-            "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
-             \\(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\\)"
-        in
         Ssl.use_certificate_from_string ctx
           (Str.replace_first cert_re "\\1" req.cert)
           (Str.replace_first cert_re "\\2" req.cert);

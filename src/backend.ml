@@ -17,11 +17,12 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
     | Invalid_certificate of ([> Err.ssl_cert_error | Gemini.Status.err ] as 'a)
     | Valid_certificate
 
+  let cn_re = Str.regexp {|/CN=\(.+\)|}
+
   let ssl_cert_verification host cert =
     let tofu_cache = Accessor.make Cache "known_hosts" in
     let* tofu_entry = Tofu.get_by_host tofu_cache host in
 
-    let cn_re = Str.regexp "/CN=\\(.+\\)" in
     let cert_cn = Str.replace_first cn_re "\\1" @@ Ssl.get_subject cert in
 
     let expiration_date = Ssl.get_expiration_date cert in
