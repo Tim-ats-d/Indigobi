@@ -134,19 +134,16 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
         let f acc addr =
           match acc with
           | Ok _ as ok -> Lwt.return ok
-          | Error `NotFound ->
-              Lwt.catch
-                (fun () ->
-                  let* cert =
-                    if cert = "" then Lwt.return ""
-                    else Lwt_io.with_file ~mode:Input cert Lwt_io.read
-                  in
-                  match Gemini.Request.create url ~addr ~host ~port ~cert with
-                  | None -> Lwt_result.fail `MalformedLink
-                  | Some r -> request timeout r)
-                (function
-                  | Unix.Unix_error _ -> Lwt_result.fail `NotFound
-                  | exn -> Lwt.fail exn)
+          | Error `NotFound -> (
+              try%lwt
+                let* cert =
+                  if cert = "" then Lwt.return ""
+                  else Lwt_io.with_file ~mode:Input cert Lwt_io.read
+                in
+                match Gemini.Request.create url ~addr ~host ~port ~cert with
+                | None -> Lwt_result.fail `MalformedLink
+                | Some r -> request timeout r
+              with Unix.Unix_error _ -> Lwt_result.fail `NotFound)
           | Error err -> Lwt_result.fail err
         in
         Lwt_list.fold_left_s f (Error `NotFound) address

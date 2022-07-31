@@ -39,30 +39,27 @@ let make loc fname =
     open Lwt.Syntax
 
     let touch_dir_if_non_existant () =
-      let* test = Lwt_unix.file_exists loc in
-      if test then Lwt.return_unit
+      if%lwt Lwt_unix.file_exists loc then Lwt.return_unit
       else
         let* () = Lwt_unix.mkdir loc 0o751 in
         Lib.Log.infof "Create %S" loc
 
     let read () =
-      Lwt.catch
-        (fun () ->
-          Lwt_io.with_file path ~mode:Input (fun inc ->
-              let* content = Lwt_io.read inc in
-              Lwt.return_some @@ Sexplib.Sexp.of_string content))
-        (function
-          | Unix.Unix_error (ENOENT, _, _) ->
-              let* () = touch_dir_if_non_existant () in
-              let* () =
-                Lwt_io.with_file path ~mode:Output (fun _ ->
-                    Lib.Log.infof "Create %S" path)
-              in
-              Lwt.return_none
-          | Failure _ | Sexplib.Sexp.Parse_error _ ->
-              let* () = Lib.Log.errf "%S is corrupted" fname in
-              Lwt.return_none
-          | exn -> Lwt.fail exn)
+      try%lwt
+        Lwt_io.with_file path ~mode:Input (fun inc ->
+            let* content = Lwt_io.read inc in
+            Lwt.return_some @@ Sexplib.Sexp.of_string content)
+      with
+      | Unix.Unix_error (ENOENT, _, _) ->
+          let* () = touch_dir_if_non_existant () in
+          let* () =
+            Lwt_io.with_file path ~mode:Output (fun _ ->
+                Lib.Log.infof "Create %S" path)
+          in
+          Lwt.return_none
+      | Failure _ | Sexplib.Sexp.Parse_error _ ->
+          let* () = Lib.Log.errf "%S is corrupted" fname in
+          Lwt.return_none
 
     let write str =
       let* () = touch_dir_if_non_existant () in
