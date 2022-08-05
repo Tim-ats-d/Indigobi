@@ -27,7 +27,7 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
 
   open Lwt.Syntax
 
-  let search addr ~raw ~certificate ~timeout =
+  let search addr ~raw_mode ~certificate ~timeout =
     let url = Lib.Url.parse addr "" in
     let* result =
       Backend.get ~url:(Lib.Url.to_string url) ~host:url.domain ~port:url.port
@@ -35,7 +35,7 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     in
     match result with
     | Ok ({ Mime.media_type = Gemini; _ }, body) ->
-        if raw then Handler.handle_text body
+        if raw_mode then Handler.handle_text body
         else
           Handler.handle_gemini
             Front.Context.{ current_url = url; history = hist }
@@ -59,11 +59,11 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     | Ok (History { mode = `Search re }) ->
         let* entries = History.search_from_regex hist re in
         LTerm.printlf "%a%!" (History.get_pp_entries hist) entries
-    | Ok (Search { address; raw; certificate; timeout }) -> (
+    | Ok (Search { address; raw_mode; certificate; timeout }) -> (
         match address with
         | None -> Handler.handle_err @@ `CommonErr `NoUrlProvided
         | Some addr ->
             Lwt.finalize
-              (fun () -> search addr ~raw ~certificate ~timeout)
+              (fun () -> search addr ~raw_mode ~certificate ~timeout)
               (fun () -> History.push hist @@ HistEntry.from_string addr))
 end

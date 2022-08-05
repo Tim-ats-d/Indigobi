@@ -3,7 +3,7 @@ and hist = { mutable mode : [ `Del of string | `Display | `Search of string ] }
 
 and search = {
   mutable address : string option;
-  mutable raw : bool;
+  mutable raw_mode : bool;
   mutable certificate : string;
   mutable timeout : float;
 }
@@ -36,12 +36,13 @@ module Default : S = struct
 
   exception BadTimeoutFormat
 
-  let search = { address = None; raw = false; certificate = ""; timeout = 5.0 }
+  let search =
+    { address = None; raw_mode = false; certificate = ""; timeout = 5.0 }
 
   let specs_search =
     [
       ( "--raw",
-        Arg.Unit (fun () -> search.raw <- true),
+        Arg.Unit (fun () -> search.raw_mode <- true),
         "Disable Gemtext formatting" );
       ( "--cert",
         Arg.String (fun c -> search.certificate <- c),

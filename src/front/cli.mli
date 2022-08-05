@@ -3,7 +3,7 @@ and hist = { mutable mode : [ `Del of string | `Display | `Search of string ] }
 
 and search = {
   mutable address : string option;
-  mutable raw : bool;
+  mutable raw_mode : bool;
   mutable certificate : string;
   mutable timeout : float;
 }
