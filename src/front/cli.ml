@@ -3,7 +3,7 @@ and hist = { mutable mode : [ `Del of string | `Display | `Search of string ] }
 
 and search = {
   mutable address : string option;
-  mutable raw : bool;
+  mutable raw_mode : bool;
   mutable certificate : string;
   mutable timeout : float;
 }
@@ -19,7 +19,9 @@ module type S = sig
 end
 
 module Default : S = struct
-  let speclist = ref []
+  let speclist =
+    ref [ ("--help", Arg.Unit (fun () -> ()), "Display the list of command") ]
+
   let hist = { mode = `Display }
 
   let specs_hist =
@@ -34,11 +36,14 @@ module Default : S = struct
 
   exception BadTimeoutFormat
 
-  let search = { address = None; raw = false; certificate = ""; timeout = 5.0 }
+  let search =
+    { address = None; raw_mode = false; certificate = ""; timeout = 5.0 }
 
   let specs_search =
     [
-      ("--raw", Arg.Unit (fun () -> search.raw <- true), "Disable formatting");
+      ( "--raw",
+        Arg.Unit (fun () -> search.raw_mode <- true),
+        "Disable Gemtext formatting" );
       ( "--cert",
         Arg.String (fun c -> search.certificate <- c),
         "Attach client certificate" );
@@ -64,22 +69,30 @@ module Default : S = struct
     | None when String.equal str "hist" ->
         sub_cmd := Some `History;
         speclist := specs_hist
-    | None when Sys.argv.(1) <> "hist" || Sys.argv.(1) <> "search" ->
+    | None when not (List.mem Sys.argv.(1) [ "hist"; "search" ]) ->
         raise_notrace @@ UnknownSubCmd str
     | _ -> ()
 
   let parse () =
-    let usage_msg =
-      Printf.sprintf "%s [ COMMAND ] [ OPTIONS ]..." Sys.argv.(0)
-    in
+    let usage = Printf.sprintf "%s [ COMMAND ] [ OPTIONS ]..." Sys.argv.(0) in
+
     let error_msg () =
       match !sub_cmd with
-      | None -> Error (`CliErrUsageMsg (Arg.usage_string !speclist usage_msg))
+      | None ->
+          let usage_msg =
+            Printf.sprintf
+              "%s\n\n\
+               Command: hist, search\n\
+              \  Type `%s CMD --help` for display the list of command options."
+              usage Sys.argv.(0)
+          in
+          speclist := specs_hist @ specs_search;
+          Error (`CliErrUsageMsg usage_msg)
       | Some `History -> Ok (History hist)
       | Some `Search -> Ok (Search search)
     in
     try
-      Arg.parse_dynamic speclist anon_fun usage_msg;
+      Arg.parse_dynamic speclist anon_fun usage;
       error_msg ()
     with
     | Invalid_argument _ -> error_msg ()

@@ -1,1 +1,1 @@
-type 'a t = { current_url : Common.Urllib.t; history : 'a Common.History.t }
+type 'a t = { current_url : Lib.Url.t; history : 'a Common.History.t }

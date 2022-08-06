@@ -1,3 +1,5 @@
 (library
  (name back)
- (libraries common gemini lwt lwt_ssl ssl unix))
+ (preprocess
+  (pps lwt_ppx))
+ (libraries common gemini lib lwt lwt_ssl ssl unix))

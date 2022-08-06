@@ -21,13 +21,10 @@ module Make (Printer : Printer.S) : S = struct
   let handle_gemini ctx lines =
     let print_line line =
       with_term LTerm.stdout (fun term ->
-          Lwt.catch
-            (fun () ->
-              let* stylized_line = Printer.stylize_gemini ~ctx line in
-              LTerm.fprintls term stylized_line)
-            (function
-              | Zed_string.Invalid (_, text) -> LTerm.printl text
-              | exn -> Lwt.fail exn))
+          try%lwt
+            let* stylized_line = Printer.stylize_gemini ~ctx line in
+            LTerm.fprintls term stylized_line
+          with Zed_string.Invalid (_, text) -> LTerm.printl text)
     in
     Lwt_list.iter_s print_line lines
 
@@ -37,7 +34,10 @@ module Make (Printer : Printer.S) : S = struct
     in
     let* () = Lwt_io.write outc body in
     let launch_app =
-      [| [%system { darwin = "open"; unix = "xdg-open" }]; fname |]
+      [|
+        [%system { darwin = "open"; default = "xdg-open"; win32 = "start" }];
+        fname;
+      |]
     in
     let* _ = Lwt_process.exec ~stderr:`Close ("", launch_app) in
     let* () = Lwt_io.close outc in

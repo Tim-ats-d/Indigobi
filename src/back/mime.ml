@@ -1,7 +1,7 @@
 type t = { media_type : media_type; encoding : [ `Utf8 | `Other of string ] }
 and media_type = Gemini | Text of string | Other of string
 
-let mime_re = Str.regexp "text/\\(.*\\)"
+let mime_re = Str.regexp {|text/\(.*\)|}
 
 let guess = function
   | "text/gemini" -> Gemini

@@ -2,6 +2,7 @@ module Back = Back
 module Front = Front
 module Common = Common
 module Gemini = Gemini
+module Lib = Lib
 
 let main () =
   let open Import in

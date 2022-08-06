@@ -1,6 +1,6 @@
 (lang dune 2.9)
 
-(version 0.2.0)
+(version 0.3.0)
 
 (name indigobi)
 
@@ -27,6 +27,8 @@
    (>= 3.3.0))
   (lwt
    (>= 5.6.0))
+  (lwt_ppx
+   (>= 2.1.0))
   (lwt_ssl
    (>= 1.1))
   (ppx_sexp_conv
@@ -34,6 +36,6 @@
   (ppx_system
    (>= "1.0"))
   (ssl
-   (>= "0.5.10"))
+   (>= "0.5.11"))
   (ocaml
    (>= 4.13))))

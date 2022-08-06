@@ -10,38 +10,37 @@ end
 module Default : S = struct
   open Lwt.Syntax
 
+  let cert_re =
+    Str.regexp
+      {|\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\) \(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\)|}
+
   let init req =
-    let* () = Common.Log.debug "Creating TLS context" in
+    let* () = Lib.Log.debug "Creating TLS context" in
     let ctx = Ssl.create_context TLSv1_2 Client_context in
     let* () =
       if req.Gemini.Request.cert <> "" then (
-        let* () = Common.Log.debug "Using client certificate" in
-        let cert_re =
-          Str.regexp
-            "\\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\\) \
-             \\(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\\)"
-        in
+        let* () = Lib.Log.debug "Using client certificate" in
         Ssl.use_certificate_from_string ctx
           (Str.replace_first cert_re "\\1" req.cert)
           (Str.replace_first cert_re "\\2" req.cert);
         Lwt.return_unit)
       else Lwt.return_unit
     in
-    let* () = Common.Log.debug "Creating socket" in
+    let* () = Lib.Log.debug "Creating socket" in
     let socket =
       Lwt_unix.socket (Unix.domain_of_sockaddr req.addr.ai_addr) SOCK_STREAM 0
     in
-    let* () = Common.Log.debug "Connecting UNIX socket to address" in
+    let* () = Lib.Log.debug "Connecting UNIX socket to address" in
     let* () = Lwt_unix.connect socket req.addr.ai_addr in
     let* () =
-      Common.Log.debug "Embedding UNIX socket using context into TLS socket"
+      Lib.Log.debug "Embedding UNIX socket using context into TLS socket"
     in
     let ssl = Lwt_ssl.embed_uninitialized_socket socket ctx in
-    let* () = Common.Log.debugf "SNI extension (%s)" req.host in
+    let* () = Lib.Log.debugf "SNI extension (%s)" req.host in
     Ssl.set_client_SNI_hostname
       (Lwt_ssl.ssl_socket_of_uninitialized_socket ssl)
       req.host;
-    let* () = Common.Log.debug "Connecting to socket" in
+    let* () = Lib.Log.debug "Connecting to socket" in
     Lwt_ssl.ssl_perform_handshake ssl
 
   let close socket = Lwt_ssl.close socket
@@ -49,7 +48,7 @@ module Default : S = struct
   let input_char ssl =
     let tmp = Lwt_bytes.create 1 in
     let* chr = Lwt_ssl.read_bytes ssl tmp 0 1 in
-    if chr <> 1 then Lwt.fail End_of_file else Lwt.return @@ Lwt_bytes.get tmp 0
+    if chr = 1 then Lwt.return @@ Lwt_bytes.get tmp 0 else Lwt.fail End_of_file
 
   let fetch_header socket req =
     let bytes = String.to_bytes req in
@@ -72,18 +71,16 @@ module Default : S = struct
   let parse_body socket =
     let buf = Buffer.create 512 in
     let rec input_in () =
-      Lwt.catch
-        (fun () ->
-          let* chr = input_char socket in
-          Buffer.add_char buf chr;
-          input_in ())
-        (function
-          | Ssl.Read_error Error_zero_return | End_of_file ->
-              Lwt.return @@ Buffer.contents buf
-          | Ssl.Read_error Error_ssl ->
-              let* () = Common.Log.warn "SSL error, some data may be missing" in
-              Lwt.return @@ Buffer.contents buf
-          | exn -> Lwt.fail exn)
+      try%lwt
+        let* chr = input_char socket in
+        Buffer.add_char buf chr;
+        input_in ()
+      with
+      | Ssl.Read_error Error_zero_return | End_of_file ->
+          Lwt.return @@ Buffer.contents buf
+      | Ssl.Read_error Error_ssl ->
+          let* () = Lib.Log.warn "SSL error, some data may be missing" in
+          Lwt.return @@ Buffer.contents buf
     in
     input_in ()
 end

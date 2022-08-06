@@ -6,20 +6,30 @@ end
 module Location = struct
   type t = Cache | Config
 
+  let home_dir =
+    Sys.getenv [%system { default = "HOME"; win32 = "USERPROFILE" }]
+
+  let cache_dir =
+    Filename.concat
+      [%system
+        {
+          darwin = "Library/Caches";
+          default = ".cache";
+          win32 = "AppData\\Local\\Microsoft\\Windows";
+        }]
+      [%system { darwin = "Indigobi"; unix = "indigobi"; win32 = "INetCache" }]
+
+  let config_dir =
+    [%system
+      {
+        darwin = "Library/Preferences/indigobi.plist";
+        unix = ".config/indigobi";
+        win32 = "AppData\\Local";
+      }]
+
   let of_string t =
-    Filename.concat (Sys.getenv "HOME")
-    @@
-    match t with
-    | Cache ->
-        Filename.concat
-          [%system { darwin = "Library/Caches"; unix = ".cache" }]
-          [%system { darwin = "Indigobi"; unix = "indigobi" }]
-    | Config ->
-        [%system
-          {
-            darwin = "Library/Preferences/indigobi.plist";
-            unix = ".config/indigobi";
-          }]
+    Filename.concat home_dir
+    @@ match t with Cache -> cache_dir | Config -> config_dir
 end
 
 let make loc fname =
@@ -29,30 +39,27 @@ let make loc fname =
     open Lwt.Syntax
 
     let touch_dir_if_non_existant () =
-      let* test = Lwt_unix.file_exists loc in
-      if test then Lwt.return_unit
+      if%lwt Lwt_unix.file_exists loc then Lwt.return_unit
       else
         let* () = Lwt_unix.mkdir loc 0o751 in
-        Log.infof "Create %S" loc
+        Lib.Log.infof "Create %S" loc
 
     let read () =
-      Lwt.catch
-        (fun () ->
-          Lwt_io.with_file path ~mode:Input (fun inc ->
-              let* content = Lwt_io.read inc in
-              Lwt.return_some @@ Sexplib.Sexp.of_string content))
-        (function
-          | Unix.Unix_error (ENOENT, _, _) ->
-              let* () = touch_dir_if_non_existant () in
-              let* () =
-                Lwt_io.with_file path ~mode:Output (fun _ ->
-                    Log.infof "Create %S" path)
-              in
-              Lwt.return_none
-          | Failure _ | Sexplib.Sexp.Parse_error _ ->
-              let* () = Log.errf "%S is corrupted" fname in
-              Lwt.return_none
-          | exn -> Lwt.fail exn)
+      try%lwt
+        Lwt_io.with_file path ~mode:Input (fun inc ->
+            let* content = Lwt_io.read inc in
+            Lwt.return_some @@ Sexplib.Sexp.of_string content)
+      with
+      | Unix.Unix_error (ENOENT, _, _) ->
+          let* () = touch_dir_if_non_existant () in
+          let* () =
+            Lwt_io.with_file path ~mode:Output (fun _ ->
+                Lib.Log.infof "Create %S" path)
+          in
+          Lwt.return_none
+      | Failure _ | Sexplib.Sexp.Parse_error _ ->
+          let* () = Lib.Log.errf "%S is corrupted" fname in
+          Lwt.return_none
 
     let write str =
       let* () = touch_dir_if_non_existant () in
