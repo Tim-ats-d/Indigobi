@@ -43,7 +43,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
     then
       if%lwt Prompt.prompt_bool "Expired certificate, trust anyway?" then
         Lwt.return Valid_certificate
-      else Lwt.return @@ Invalid_certificate `CertificateExpired
+      else Lwt.return @@ Invalid_certificate `ExpiredCertificate
     else
       let new_entry =
         {
