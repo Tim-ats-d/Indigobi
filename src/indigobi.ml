@@ -30,7 +30,7 @@ let gemtext, headers =
 => /search Search
 => /backlinks Query backlinks
 
-## Geminispace Data ## Geminispace Data ## Geminispace Data ## Geminispace Data ## Geminispace Data
+## Geminispace Data Nique Artichaut Nique Artichaut Nique Artichaut Nique Artichaut Nique Artichaut Nique Artichaut Nique Artichaut
 
 => /statistics geminispace.info Statistics
 => /known-hosts Known Gemini Hosts
@@ -87,12 +87,6 @@ let main_aux () =
           view#add ~expand:false sep;
           view#add toc);
         true
-    | LTerm_event.Key LTerm_key.{ code = Left; _ } ->
-        textbox#goleft;
-        true
-    | LTerm_event.Key LTerm_key.{ code = Right; _ } ->
-        textbox#goright;
-        true
     | LTerm_event.Key LTerm_key.{ code = Up; _ } ->
         textbox#goup;
         true
@@ -109,4 +103,7 @@ let main_aux () =
   let* term = Lazy.force LTerm.stdout in
   LTerm_widget.run term mainbox waiter
 
-let main () = Lwt_main.run @@ main_aux ()
+let main () =
+  Printexc.record_backtrace true;
+  Printexc.print_backtrace stdout;
+  Lwt_main.run @@ main_aux ()

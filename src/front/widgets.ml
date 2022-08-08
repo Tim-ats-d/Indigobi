@@ -1,40 +1,36 @@
 module Make (Theme : Config.Theme.S) = struct
-  class textbox lines =
+  class textbox (lines : LTerm_text.t list) =
     object (self)
       inherit LTerm_widget.t "textbox"
-      val hscroll = new LTerm_widget.scrollable
       val vscroll = new LTerm_widget.scrollable
+      initializer self#init_scroll
 
-      initializer
-      self#adjust_scroll;
-      hscroll#on_offset_change (fun _ -> self#queue_draw);
-      vscroll#on_offset_change (fun _ -> self#queue_draw)
+      method init_scroll =
+        vscroll#set_range (List.length lines);
+        vscroll#on_offset_change (fun _ -> self#queue_draw)
 
-      method adjust_scroll =
-        hscroll#set_range
-        @@ List.fold_left
-             (fun acc line -> Int.max acc @@ Array.length line)
-             1 lines;
-        vscroll#set_range @@ List.length lines
+      (* TODO: better wrapping *)
+      method wrap_lines cols =
+        let rec wrap acc x =
+          let len = Array.length x in
+          if len > cols then
+            let inserted_line = Array.sub x cols (len - cols) in
+            let line = Array.sub x 0 cols in
+            wrap (line :: acc) inserted_line
+          else List.rev (x :: acc)
+        in
+        List.fold_left (fun acc line -> acc @ wrap [] line) [] lines
 
       method goup = vscroll#set_offset (vscroll#offset - 1)
       method godown = vscroll#set_offset (vscroll#offset + 1)
-      method goleft = hscroll#set_offset (hscroll#offset - 1)
-      method goright = hscroll#set_offset (hscroll#offset + 1)
 
       method! draw ctx _focused =
-        let { LTerm_geom.rows; _ } = LTerm_draw.size ctx in
+        let { LTerm_geom.rows; cols } = LTerm_draw.size ctx in
+        let wrapped_lines = self#wrap_lines cols in
         for row = 0 to rows - 1 do
-          match List.nth_opt lines (row + vscroll#offset) with
+          match List.nth_opt wrapped_lines (row + vscroll#offset) with
           | None -> ()
-          | Some line ->
-              let bline =
-                try
-                  Array.length line - hscroll#offset
-                  |> Array.sub line hscroll#offset
-                with Invalid_argument _ -> [||]
-              in
-              LTerm_draw.draw_styled ctx row 0 bline
+          | Some line -> LTerm_draw.draw_styled ctx row 0 line
         done
     end
 
