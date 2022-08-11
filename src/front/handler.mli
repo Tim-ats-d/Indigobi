@@ -8,4 +8,5 @@ module type S = sig
     unit Lwt.t
 end
 
-module Make : functor (Printer : Printer.S) -> S
+module Make : functor (Printer : Printer.S) (ExternalHandler : ExtHandler.S) ->
+  S
