@@ -1,7 +1,7 @@
 module G = Gemini
 
 module type S = sig
-  type socket = Tls_lwt.ic * Tls_lwt.oc
+  type socket
 
   val init : Gemini.Request.t -> (socket, Tls.Engine.failure) Lwt_result.t
   val close : socket -> unit Lwt.t

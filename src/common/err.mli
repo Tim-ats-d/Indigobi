@@ -10,7 +10,7 @@ type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 type back =
   [ status_code
   | ssl_cert_error
-  | Tls.Engine.failure
+  | `Tls of Tls.Engine.failure
   | `MalformedLink
   | `MalformedServerResponse
   | `NotFound
