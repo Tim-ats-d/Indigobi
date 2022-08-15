@@ -2,4 +2,4 @@
  (name common)
  (preprocess
   (pps lwt_ppx ppx_sexp_conv ppx_system))
- (libraries lib lwt lwt.unix sexplib str))
+ (libraries lib lwt lwt.unix sexplib str tls tls.lwt))

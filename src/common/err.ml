@@ -10,6 +10,7 @@ type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 type back =
   [ status_code
   | ssl_cert_error
+  | Tls.Engine.failure
   | `MalformedLink
   | `MalformedServerResponse
   | `NotFound
@@ -20,6 +21,8 @@ type front =
   [ `CliErrBadTimeoutFormat | `CliErrUnknownSubCmd of string | `NoUrlProvided ]
 
 type t = [ front | back ]
+
+exception UnknownError of t
 
 let pp () = function
   | `GracefulFail -> "graceful fail: server returns 99 status code"
@@ -39,3 +42,4 @@ let pp () = function
   | `CliErrBadTimeoutFormat -> "bad format for timeout"
   | `CliErrUnknownSubCmd sub_cmd ->
       Printf.sprintf "unknown sub command %S" sub_cmd
+  | _ as err -> raise @@ UnknownError err
