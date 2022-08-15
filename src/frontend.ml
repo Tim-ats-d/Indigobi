@@ -29,23 +29,27 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
 
   let search addr ~raw_mode ~certificate ~timeout =
     let url = Lib.Url.parse addr "" in
-    let* result =
-      Backend.get ~url:(Lib.Url.to_string url) ~host:url.domain ~port:url.port
-        ~cert:certificate ~timeout
-    in
-    match result with
-    | Ok ({ Mime.media_type = Gemini; _ }, body) ->
-        if raw_mode then Handler.handle_text body
-        else
-          Handler.handle_gemini
-            Front.Context.{ current_url = url; history = hist }
-          @@ Gemini.Gemtext.parse body
-    | Ok ({ Mime.media_type = Text txt; _ }, body) ->
-        Handler.handle_text body ~typ:txt
-    | Ok ({ Mime.media_type = Other mime; _ }, body) ->
-        Handler.handle_other body ~mime
-    | Error (#Gemini.Status.err as e) -> Handler.handle_err @@ `GeminiErr e
-    | Error (#Err.t as e) -> Handler.handle_err @@ `CommonErr e
+    let* cert = Backend.cert_from_file certificate in
+    match cert with
+    | Ok c -> (
+        let* result =
+          Backend.get ~url:(Lib.Url.to_string url) ~host:url.domain
+            ~port:url.port ~cert:c ~timeout
+        in
+        match result with
+        | Ok ({ Mime.media_type = Gemini; _ }, body) ->
+            if raw_mode then Handler.handle_text body
+            else
+              Handler.handle_gemini
+                Front.Context.{ current_url = url; history = hist }
+              @@ Gemini.Gemtext.parse body
+        | Ok ({ Mime.media_type = Text txt; _ }, body) ->
+            Handler.handle_text body ~typ:txt
+        | Ok ({ Mime.media_type = Other mime; _ }, body) ->
+            Handler.handle_other body ~mime
+        | Error (#Gemini.Status.err as e) -> Handler.handle_err @@ `GeminiErr e
+        | Error (#Err.t as e) -> Handler.handle_err @@ `CommonErr e)
+    | Error e -> Handler.handle_err @@ `CommonErr e
 
   let launch () =
     match ArgParser.parse () with

@@ -5,13 +5,42 @@ module type S = sig
     url:string ->
     host:string ->
     port:int ->
-    cert:string ->
+    cert:Tls.Config.own_cert option ->
     timeout:float ->
     (Mime.t * string, [> Err.back | Gemini.Status.err ]) Lwt_result.t
+
+  val cert_from_file :
+    string -> (Tls.Config.own_cert option, [> Common.Err.back ]) Lwt_result.t
 end
 
 module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
   open Lwt.Syntax
+
+  let cert_from_file cert =
+    if cert = "" then Lwt_result.ok @@ Lwt.return None
+    else
+      try%lwt
+        let* cert_str = Lwt_io.with_file ~mode:Input cert Lwt_io.read in
+        let cert_re =
+          Str.regexp
+            {|\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\) \(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\)|}
+        in
+        match
+          Str.replace_first cert_re "\\1" cert_str
+          |> Cstruct.of_string |> X509.Certificate.decode_pem_multiple
+        with
+        | Ok certificate -> (
+            match
+              Str.replace_first cert_re "\\2" cert_str
+              |> Cstruct.of_string |> X509.Private_key.decode_pem
+            with
+            | Ok priv_key ->
+                Lwt_result.ok @@ Lwt.return
+                @@ Some (`Single (certificate, priv_key))
+            | Error (`Msg e) -> Lwt_result.fail @@ `InvalidClientCertificate e)
+        | Error (`Msg e) -> Lwt_result.fail @@ `InvalidClientCertificate e
+      with Unix.Unix_error (Unix.ENOENT, "open", _) ->
+        Lwt_result.fail @@ `FileNotFound cert
 
   let rec request timeout req =
     let* socket_r = Requester.init req in
@@ -43,10 +72,6 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
     | Error err -> Lwt_result.fail (`Tls err)
 
   and get ~url ~host ~port ~cert ~timeout =
-    let* cert =
-      if cert = "" then Lwt.return ""
-      else Lwt_io.with_file ~mode:Input cert Lwt_io.read
-    in
     match Gemini.Request.create url ~host ~port ~cert with
     | None -> Lwt_result.fail `MalformedLink
     | Some r -> request timeout r

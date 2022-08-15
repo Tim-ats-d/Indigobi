@@ -14,16 +14,16 @@ module Default : S = struct
 
   type socket = Tls_lwt.ic * Tls_lwt.oc
 
-  let cert_re =
-    Str.regexp
-      {|\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\) \(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\)|}
-
   let init req =
     try%lwt
+      let config =
+        let authenticator ?ip:_ ~host:_ _ = Ok None in
+        match req.G.Request.cert with
+        | Some certificates -> Tls.Config.client ~authenticator ~certificates ()
+        | None -> Tls.Config.client ~authenticator ()
+      in
       let socket =
-        Tls_lwt.connect_ext
-          (Tls.Config.client ~authenticator:(fun ?ip:_ ~host:_ _ -> Ok None) ())
-          (req.G.Request.host, req.G.Request.port)
+        Tls_lwt.connect_ext config (req.G.Request.host, req.G.Request.port)
       in
       Lwt_result.ok socket
     with Tls_lwt.Tls_failure e -> Lwt_result.fail e
@@ -55,8 +55,7 @@ module Default : S = struct
         let* chr = input_char socket in
         Buffer.add_char buf chr;
         input_in ()
-      with 
-      | End_of_file -> Lwt.return @@ Buffer.contents buf
+      with End_of_file -> Lwt.return @@ Buffer.contents buf
     in
     input_in ()
 end

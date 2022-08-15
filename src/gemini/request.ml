@@ -3,7 +3,7 @@ type t = {
   uri : string;
   host : string;
   port : int;
-  cert : string;
+  cert : Tls.Config.own_cert option;
 }
 
 let create ~host ~port ~cert url =

@@ -11,6 +11,8 @@ type back =
   [ status_code
   | ssl_cert_error
   | `Tls of Tls.Engine.failure
+  | `InvalidClientCertificate of string
+  | `FileNotFound of string
   | `MalformedLink
   | `MalformedServerResponse
   | `NotFound

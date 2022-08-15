@@ -11,6 +11,8 @@ type back =
   [ status_code
   | ssl_cert_error
   | `Tls of Tls.Engine.failure
+  | `InvalidClientCertificate of string
+  | `FileNotFound of string
   | `MalformedLink
   | `MalformedServerResponse
   | `NotFound
@@ -40,4 +42,7 @@ let pp () = function
   | `CliErrBadTimeoutFormat -> "bad format for timeout"
   | `CliErrUnknownSubCmd sub_cmd ->
       Printf.sprintf "unknown sub command %S" sub_cmd
+  | `InvalidClientCertificate reason ->
+      Printf.sprintf "invalid client certificate: %S" reason
+  | `FileNotFound file -> Printf.sprintf "file \"%s\" not found" file
   | `Tls err -> raise @@ Tls_lwt.Tls_failure err
