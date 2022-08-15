@@ -55,7 +55,8 @@ module Default : S = struct
         let* chr = input_char socket in
         Buffer.add_char buf chr;
         input_in ()
-      with _ as err -> raise err
+      with 
+      | End_of_file -> Lwt.return @@ Buffer.contents buf
     in
     input_in ()
 end

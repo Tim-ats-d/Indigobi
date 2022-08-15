@@ -22,8 +22,6 @@ type front =
 
 type t = [ front | back ]
 
-exception UnknownError of t
-
 let pp () = function
   | `GracefulFail -> "graceful fail: server returns 99 status code"
   | `InvalidStatusCode code ->
@@ -42,4 +40,4 @@ let pp () = function
   | `CliErrBadTimeoutFormat -> "bad format for timeout"
   | `CliErrUnknownSubCmd sub_cmd ->
       Printf.sprintf "unknown sub command %S" sub_cmd
-  | _ as err -> raise @@ UnknownError err
+  | `Tls err -> raise @@ Tls_lwt.Tls_failure err
