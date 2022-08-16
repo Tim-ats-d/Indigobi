@@ -1,10 +1,11 @@
 module type S = sig
   val get :
+    ?bypass:Gemini.Request.bypass ->
     url:string ->
     host:string ->
     port:int ->
     cert:Tls.Config.own_cert option ->
-    timeout:float ->
+    float ->
     ( Back.Mime.t * string,
       [> Common.Err.back | Gemini.Status.err ] )
     Lwt_result.t

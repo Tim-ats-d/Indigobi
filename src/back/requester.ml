@@ -33,7 +33,9 @@ module Default : S = struct
                   now |> is_later ~than:(fst validity)
                   && now |> is_earlier ~than:(snd validity)
                 then Ok None
+                else if req.G.Request.bypass.expiration then Ok None
                 else Error (`LeafCertificateExpired (hd, Some now))
+              else if req.G.Request.bypass.host then Ok None
               else Error (`LeafInvalidName (hd, host))
         in
         match req.G.Request.cert with

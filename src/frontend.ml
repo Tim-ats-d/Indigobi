@@ -34,7 +34,7 @@ module Make (Backend : Backend.S) (Handler : Handler.S) (ArgParser : Cli.S) :
     | Ok c -> (
         let* result =
           Backend.get ~url:(Lib.Url.to_string url) ~host:url.domain
-            ~port:url.port ~cert:c ~timeout
+            ~port:url.port ~cert:c timeout
         in
         match result with
         | Ok ({ Mime.media_type = Gemini; _ }, body) ->

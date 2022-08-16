@@ -1,7 +1,7 @@
 type status_code = [ `GracefulFail | `InvalidStatusCode of int ]
 
 type ssl_cert_error =
-  [ `MismatchedDomainNames of string * string
+  [ `DomainNameNotPresent of string
   | `ExpiredCertificate
   | `UntrustedCertificate ]
 
@@ -29,9 +29,8 @@ let pp () = function
   | `GracefulFail -> "graceful fail: server returns 99 status code"
   | `InvalidStatusCode code ->
       Printf.sprintf "server returns invalid status code \"%i\"" code
-  | `MismatchedDomainNames (req_cn, cert_cn) ->
-      Printf.sprintf "mismatched domain names: %S (request), %S (certificate)"
-        req_cn cert_cn
+  | `DomainNameNotPresent domain ->
+      Printf.sprintf "domain %s not present in certificate" domain
   | `ExpiredCertificate -> "expired certificate"
   | `UntrustedCertificate -> "untrusted certificate"
   | `MalformedLink -> "malformed link"

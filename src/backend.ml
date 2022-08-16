@@ -2,11 +2,12 @@ open Import
 
 module type S = sig
   val get :
+    ?bypass:Gemini.Request.bypass ->
     url:string ->
     host:string ->
     port:int ->
     cert:Tls.Config.own_cert option ->
-    timeout:float ->
+    float ->
     (Mime.t * string, [> Err.back | Gemini.Status.err ]) Lwt_result.t
 
   val cert_from_file :
@@ -65,14 +66,40 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                 let* () = Requester.close socket in
                 Lwt_result.ok @@ Lwt.return (Mime.parse meta, body)
             | `Redirect (meta, _) ->
-                get
+                get ~bypass:req.bypass
                   ~url:Lib.Url.(to_string @@ parse meta req.host)
-                  ~host:req.host ~port:req.port ~cert:req.cert ~timeout
+                  ~host:req.host ~port:req.port ~cert:req.cert timeout
             | #Gemini.Status.err as err -> Lwt_result.fail err))
-    | Error err -> Lwt_result.fail @@ `SocketError err
+    | Error err -> (
+        match err with
+        | `Tls (`Error (`AuthenticationFailure validation_error)) -> (
+            match validation_error with
+            | `LeafInvalidName _ ->
+                if%lwt
+                  Prompt.prompt_bool
+                  @@ Printf.sprintf
+                       "Domain %s not present in certificate, proceed anyway?"
+                       req.host
+                then
+                  get
+                    ~bypass:{ req.bypass with host = true }
+                    ~url:req.uri ~host:req.host ~port:req.port ~cert:req.cert
+                    timeout
+                else Lwt_result.fail @@ `DomainNameNotPresent req.host
+            | `LeafCertificateExpired _ ->
+                if%lwt Prompt.prompt_bool "Expired certificate, proceed anyway?"
+                then
+                  get
+                    ~bypass:{ req.bypass with expiration = true }
+                    ~url:req.uri ~host:req.host ~port:req.port ~cert:req.cert
+                    timeout
+                else Lwt_result.fail `ExpiredCertificate
+            | _ -> Lwt_result.fail @@ `SocketError err)
+        | _ -> Lwt_result.fail @@ `SocketError err)
 
-  and get ~url ~host ~port ~cert ~timeout =
-    match Gemini.Request.create url ~host ~port ~cert with
+  and get ?(bypass = Gemini.Request.default_bypass) ~url ~host ~port ~cert
+      timeout =
+    match Gemini.Request.create url ~host ~port ~cert ~bypass with
     | None -> Lwt_result.fail `MalformedLink
     | Some r -> request timeout r
 end
