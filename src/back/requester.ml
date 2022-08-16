@@ -3,7 +3,7 @@ module G = Gemini
 module type S = sig
   type socket
 
-  val init : Gemini.Request.t -> (socket, Tls.Engine.failure) Lwt_result.t
+  val init : Gemini.Request.t -> (socket, Common.Err.socket_error) Lwt_result.t
   val close : socket -> unit Lwt.t
   val fetch_header : socket -> string -> string Lwt.t
   val parse_body : socket -> string Lwt.t
@@ -26,7 +26,9 @@ module Default : S = struct
         Tls_lwt.connect_ext config (req.G.Request.host, req.G.Request.port)
       in
       Lwt_result.ok socket
-    with Tls_lwt.Tls_failure e -> Lwt_result.fail e
+    with
+    | Tls_lwt.Tls_failure e -> Lwt_result.fail @@ `Tls e
+    | Invalid_argument _ -> Lwt_result.fail @@ `NoAddress req.G.Request.host
 
   let close (ic, oc) = Lwt.join [ Lwt_io.close ic; Lwt_io.close oc ]
   let input_char (ic, _) = Lwt_io.read_char ic

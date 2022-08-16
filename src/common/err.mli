@@ -5,12 +5,13 @@ type ssl_cert_error =
   | `ExpiredCertificate
   | `UntrustedCertificate ]
 
+type socket_error = [ `Tls of Tls.Engine.failure | `NoAddress of string ]
 type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 
 type back =
   [ status_code
   | ssl_cert_error
-  | `Tls of Tls.Engine.failure
+  | `SocketError of socket_error
   | `InvalidClientCertificate of string
   | `FileNotFound of string
   | `MalformedLink

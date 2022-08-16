@@ -69,7 +69,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                   ~url:Lib.Url.(to_string @@ parse meta req.host)
                   ~host:req.host ~port:req.port ~cert:req.cert ~timeout
             | #Gemini.Status.err as err -> Lwt_result.fail err))
-    | Error err -> Lwt_result.fail (`Tls err)
+    | Error err -> Lwt_result.fail @@ `SocketError err
 
   and get ~url ~host ~port ~cert ~timeout =
     match Gemini.Request.create url ~host ~port ~cert with

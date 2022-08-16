@@ -5,12 +5,13 @@ type ssl_cert_error =
   | `ExpiredCertificate
   | `UntrustedCertificate ]
 
+type socket_error = [ `Tls of Tls.Engine.failure | `NoAddress of string ]
 type header = [ status_code | `MalformedHeader | `TooLongHeader ]
 
 type back =
   [ status_code
   | ssl_cert_error
-  | `Tls of Tls.Engine.failure
+  | `SocketError of socket_error
   | `InvalidClientCertificate of string
   | `FileNotFound of string
   | `MalformedLink
@@ -45,4 +46,7 @@ let pp () = function
   | `InvalidClientCertificate reason ->
       Printf.sprintf "invalid client certificate: %S" reason
   | `FileNotFound file -> Printf.sprintf "file \"%s\" not found" file
-  | `Tls err -> raise @@ Tls_lwt.Tls_failure err
+  | `SocketError error -> (
+      match error with
+      | `Tls tls_error -> raise @@ Tls_lwt.Tls_failure tls_error
+      | `NoAddress address -> Printf.sprintf "no address for %s" address)
