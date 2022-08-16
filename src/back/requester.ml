@@ -17,7 +17,25 @@ module Default : S = struct
   let init req =
     try%lwt
       let config =
-        let authenticator ?ip:_ ~host:_ _ = Ok None in
+        let authenticator ?ip:_ ~host = function
+          | [] -> Error `EmptyCertificateChain
+          | hd :: _ ->
+              if
+                X509.Certificate.hostnames hd
+                |> X509.Host.Set.elements
+                |> List.map (fun (_, h) -> Domain_name.to_string h)
+                |> List.mem req.G.Request.host
+              then
+                let open Ptime in
+                let validity = X509.Certificate.validity hd in
+                let now = Ptime_clock.now () in
+                if
+                  now |> is_later ~than:(fst validity)
+                  && now |> is_earlier ~than:(snd validity)
+                then Ok None
+                else Error (`LeafCertificateExpired (hd, Some now))
+              else Error (`LeafInvalidName (hd, host))
+        in
         match req.G.Request.cert with
         | Some certificates -> Tls.Config.client ~authenticator ~certificates ()
         | None -> Tls.Config.client ~authenticator ()
