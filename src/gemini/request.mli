@@ -1,17 +1,26 @@
+type bypass = {
+  host : bool;
+  expiration : bool;
+  empty : bool;
+  fingerprint : bool;
+}
+
 type t = {
   base_url : string;
   uri : string;
-  addr : Unix.addr_info;
   host : string;
   port : int;
-  cert : string;
+  cert : Tls.Config.own_cert option;
+  bypass : bypass;
 }
 
+val default_bypass : bypass
+
 val create :
-  addr:Unix.addr_info ->
+  bypass:bypass ->
   host:string ->
   port:int ->
-  cert:string ->
+  cert:Tls.Config.own_cert option ->
   string ->
   t option
 

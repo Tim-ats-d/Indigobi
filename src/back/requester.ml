@@ -1,68 +1,99 @@
 module G = Gemini
 
 module type S = sig
-  val init : Gemini.Request.t -> Lwt_ssl.socket Lwt.t
-  val close : Lwt_ssl.socket -> unit Lwt.t
-  val fetch_header : Lwt_ssl.socket -> string -> string Lwt.t
-  val parse_body : Lwt_ssl.socket -> string Lwt.t
+  type socket
+
+  val init : Gemini.Request.t -> (socket, Common.Err.socket_error) Lwt_result.t
+  val close : socket -> unit Lwt.t
+  val fetch_header : socket -> string -> string Lwt.t
+  val parse_body : socket -> string Lwt.t
 end
 
 module Default : S = struct
   open Lwt.Syntax
 
-  let cert_re =
-    Str.regexp
-      {|\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\) \(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\)|}
+  type socket = Tls_lwt.ic * Tls_lwt.oc
 
   let init req =
-    let* () = Lib.Log.debug "Creating TLS context" in
-    let ctx = Ssl.create_context TLSv1_2 Client_context in
-    let* () =
-      if req.Gemini.Request.cert <> "" then (
-        let* () = Lib.Log.debug "Using client certificate" in
-        Ssl.use_certificate_from_string ctx
-          (Str.replace_first cert_re "\\1" req.cert)
-          (Str.replace_first cert_re "\\2" req.cert);
-        Lwt.return_unit)
-      else Lwt.return_unit
+    let* tofu_entry = Tofu.get_by_host req.G.Request.host in
+    let new_tofu_entry =
+      (* this variable should not be accessed outside `authenticator` and `Tofu.save_entry` *)
+      ref { Tofu.host = ""; fingerprint = ""; expiration_date = 0.0 }
     in
-    let* () = Lib.Log.debug "Creating socket" in
-    let socket =
-      Lwt_unix.socket (Unix.domain_of_sockaddr req.addr.ai_addr) SOCK_STREAM 0
-    in
-    let* () = Lib.Log.debug "Connecting UNIX socket to address" in
-    let* () = Lwt_unix.connect socket req.addr.ai_addr in
-    let* () =
-      Lib.Log.debug "Embedding UNIX socket using context into TLS socket"
-    in
-    let ssl = Lwt_ssl.embed_uninitialized_socket socket ctx in
-    let* () = Lib.Log.debugf "SNI extension (%s)" req.host in
-    Ssl.set_client_SNI_hostname
-      (Lwt_ssl.ssl_socket_of_uninitialized_socket ssl)
-      req.host;
-    let* () = Lib.Log.debug "Connecting to socket" in
-    Lwt_ssl.ssl_perform_handshake ssl
+    try%lwt
+      let config =
+        let authenticator ?ip:_ ~host certs =
+          let cert = List.hd certs in
+          let entry =
+            Option.value
+              ~default:
+                {
+                  Tofu.host = req.G.Request.host;
+                  fingerprint =
+                    Cstruct.to_string
+                    @@ X509.Certificate.fingerprint `SHA256 cert;
+                  expiration_date =
+                    Ptime.to_float_s @@ snd @@ X509.Certificate.validity cert;
+                }
+              tofu_entry
+          in
+          let validation =
+            X509.Validation.trust_cert_fingerprint ~host
+              ~time:(fun () -> Some (Ptime_clock.now ()))
+              ~hash:`SHA256
+              ~fingerprint:
+                (Cstruct.of_string
+                @@
+                match tofu_entry with
+                | None -> entry.fingerprint
+                | Some e -> e.fingerprint)
+              certs
+          in
 
-  let close socket = Lwt_ssl.close socket
+          match validation with
+          | Ok _ ->
+              new_tofu_entry := Option.value ~default:entry tofu_entry;
+              validation
+          | Error e -> (
+              match e with
+              | `LeafInvalidName _ when req.G.Request.bypass.host -> Ok None
+              | `LeafCertificateExpired _ when req.G.Request.bypass.expiration
+                ->
+                  Ok None
+              | `EmptyCertificateChain when req.G.Request.bypass.empty ->
+                  Ok None
+              | `InvalidFingerprint _ when req.G.Request.bypass.fingerprint ->
+                  Ok None
+              | _ -> validation)
+        in
+        match req.G.Request.cert with
+        | None -> Tls.Config.client ~authenticator ()
+        | Some certificates -> Tls.Config.client ~authenticator ~certificates ()
+      in
+      let* socket =
+        Tls_lwt.connect_ext config (req.G.Request.host, req.G.Request.port)
+      in
+      let* () = Tofu.save_entry !new_tofu_entry in
+      Lwt_result.ok @@ Lwt.return socket
+    with
+    | Tls_lwt.Tls_failure e -> Lwt_result.fail @@ `Tls e
+    | Invalid_argument _ -> Lwt_result.fail @@ `NoAddress req.G.Request.host
 
-  let input_char ssl =
-    let tmp = Lwt_bytes.create 1 in
-    let* chr = Lwt_ssl.read_bytes ssl tmp 0 1 in
-    if chr = 1 then Lwt.return @@ Lwt_bytes.get tmp 0 else Lwt.fail End_of_file
+  let close (ic, oc) = Lwt.join [ Lwt_io.close ic; Lwt_io.close oc ]
+  let input_char (ic, _) = Lwt_io.read_char ic
 
-  let fetch_header socket req =
-    let bytes = String.to_bytes req in
-    let* _ = Lwt_ssl.write socket bytes 0 @@ Bytes.length bytes in
+  let fetch_header (ic, oc) req =
+    let* () = Lwt_io.write oc req in
     let buf = Buffer.create 4 in
-    let* chr = input_char socket in
+    let* chr = input_char (ic, oc) in
     Buffer.add_char buf chr;
-    let* chr = input_char socket in
+    let* chr = input_char (ic, oc) in
     Buffer.add_char buf chr;
     let rec input_in () =
       if String.equal Buffer.(sub buf (length buf - 2) 2) "\r\n" then
         Lwt.return @@ Buffer.contents buf
       else
-        let* chr = input_char socket in
+        let* chr = input_char (ic, oc) in
         Buffer.add_char buf chr;
         input_in ()
     in
@@ -75,12 +106,7 @@ module Default : S = struct
         let* chr = input_char socket in
         Buffer.add_char buf chr;
         input_in ()
-      with
-      | Ssl.Read_error Error_zero_return | End_of_file ->
-          Lwt.return @@ Buffer.contents buf
-      | Ssl.Read_error Error_ssl ->
-          let* () = Lib.Log.warn "SSL error, some data may be missing" in
-          Lwt.return @@ Buffer.contents buf
+      with End_of_file -> Lwt.return @@ Buffer.contents buf
     in
     input_in ()
 end
