@@ -94,6 +94,33 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                     ~url:req.uri ~host:req.host ~port:req.port ~cert:req.cert
                     timeout
                 else Lwt_result.fail `ExpiredCertificate
+            | `InvalidFingerprint (cert, _, _) ->
+                if%lwt
+                  Prompt.prompt_bool
+                    "Untrusted certificate, replace trusted one with this new \
+                     one?"
+                then
+                  let* () =
+                    Tofu.save_entry Tofu.cache
+                      {
+                        Tofu.host = req.host;
+                        fingerprint =
+                          Cstruct.to_string
+                          @@ X509.Certificate.fingerprint `SHA256 cert;
+                        expiration_date =
+                          Ptime.to_float_s @@ snd
+                          @@ X509.Certificate.validity cert;
+                      }
+                  in
+                  get ~bypass:req.bypass ~url:req.uri ~host:req.host
+                    ~port:req.port ~cert:req.cert timeout
+                else
+                  if%lwt Prompt.prompt_bool "Proceed anyway?" then
+                    get
+                      ~bypass:{ req.bypass with fingerprint = true }
+                      ~url:req.uri ~host:req.host ~port:req.port ~cert:req.cert
+                      timeout
+                  else Lwt_result.fail `UntrustedCertificate
             | _ -> Lwt_result.fail @@ `SocketError err)
         | _ -> Lwt_result.fail @@ `SocketError err)
 

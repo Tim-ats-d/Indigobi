@@ -1,4 +1,9 @@
-type bypass = { host : bool; expiration : bool; empty : bool }
+type bypass = {
+  host : bool;
+  expiration : bool;
+  empty : bool;
+  fingerprint : bool;
+}
 
 type t = {
   base_url : string;

@@ -1,4 +1,9 @@
-type bypass = { host : bool; expiration : bool; empty : bool }
+type bypass = {
+  host : bool;
+  expiration : bool;
+  empty : bool;
+  fingerprint : bool;
+}
 
 type t = {
   base_url : string;
@@ -9,7 +14,8 @@ type t = {
   bypass : bypass;
 }
 
-let default_bypass = { host = false; expiration = false; empty = false }
+let default_bypass =
+  { host = false; expiration = false; empty = false; fingerprint = false }
 
 let create ~bypass ~host ~port ~cert url =
   if Bytes.(length @@ of_string url) > 1024 then None

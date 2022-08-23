@@ -15,37 +15,69 @@ module Default : S = struct
   type socket = Tls_lwt.ic * Tls_lwt.oc
 
   let init req =
+    let* tofu_entry = Tofu.get_by_host Tofu.cache req.G.Request.host in
+    let new_tofu_entry =
+      ref { Tofu.host = ""; fingerprint = ""; expiration_date = 0.0 }
+    in
+
     try%lwt
       let config =
-        let authenticator ?ip:_ ~host = function
-          | [] -> Error `EmptyCertificateChain
-          | hd :: _ ->
-              if
-                X509.Certificate.hostnames hd
-                |> X509.Host.Set.elements
-                |> List.map (fun (_, h) -> Domain_name.to_string h)
-                |> List.mem req.G.Request.host
-              then
-                let open Ptime in
-                let validity = X509.Certificate.validity hd in
-                let now = Ptime_clock.now () in
-                if
-                  now |> is_later ~than:(fst validity)
-                  && now |> is_earlier ~than:(snd validity)
-                then Ok None
-                else if req.G.Request.bypass.expiration then Ok None
-                else Error (`LeafCertificateExpired (hd, Some now))
-              else if req.G.Request.bypass.host then Ok None
-              else Error (`LeafInvalidName (hd, host))
+        let authenticator ?ip:_ ~host certs =
+          let cert = List.hd certs in
+
+          let entry =
+            match tofu_entry with
+            | None ->
+                {
+                  Tofu.host = req.G.Request.host;
+                  fingerprint =
+                    Cstruct.to_string
+                    @@ X509.Certificate.fingerprint `SHA256 cert;
+                  expiration_date =
+                    Ptime.to_float_s @@ snd @@ X509.Certificate.validity cert;
+                }
+            | Some entry -> entry
+          in
+
+          let validation =
+            X509.Validation.trust_cert_fingerprint ~host
+              ~time:(fun () -> Some (Ptime_clock.now ()))
+              ~hash:`SHA256
+              ~fingerprint:
+                (match tofu_entry with
+                | Some e -> Cstruct.of_string @@ e.fingerprint
+                | None -> Cstruct.of_string @@ entry.fingerprint)
+              certs
+          in
+
+          match validation with
+          | Ok _ ->
+              (match tofu_entry with
+              | Some e -> new_tofu_entry := e
+              | None -> new_tofu_entry := entry);
+              validation
+          | Error e -> (
+              match e with
+              | `LeafInvalidName _ when req.G.Request.bypass.host -> Ok None
+              | `LeafCertificateExpired _ when req.G.Request.bypass.expiration
+                ->
+                  Ok None
+              | `EmptyCertificateChain when req.G.Request.bypass.empty ->
+                  Ok None
+              | `InvalidFingerprint _ when req.G.Request.bypass.fingerprint ->
+                  Ok None
+              | _ -> validation)
         in
+
         match req.G.Request.cert with
         | Some certificates -> Tls.Config.client ~authenticator ~certificates ()
         | None -> Tls.Config.client ~authenticator ()
       in
-      let socket =
+      let* socket =
         Tls_lwt.connect_ext config (req.G.Request.host, req.G.Request.port)
       in
-      Lwt_result.ok socket
+      let* () = Tofu.save_entry Tofu.cache !new_tofu_entry in
+      Lwt_result.ok @@ Lwt.return socket
     with
     | Tls_lwt.Tls_failure e -> Lwt_result.fail @@ `Tls e
     | Invalid_argument _ -> Lwt_result.fail @@ `NoAddress req.G.Request.host
