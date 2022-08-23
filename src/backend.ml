@@ -60,7 +60,9 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                 let* input =
                   if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
                 in
-                request timeout @@ Gemini.Request.attach_input req input
+                Lib.Url.encode input
+                |> Gemini.Request.attach_input req
+                |> request timeout
             | `Success ->
                 let* body = Requester.parse_body socket in
                 let* () = Requester.close socket in
