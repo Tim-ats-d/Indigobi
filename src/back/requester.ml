@@ -17,6 +17,7 @@ module Default : S = struct
   let init req =
     let* tofu_entry = Tofu.get_by_host Tofu.cache req.G.Request.host in
     let new_tofu_entry =
+      (* this variable should not be accessed outside `authenticator` and `Tofu.save_entry` *)
       ref { Tofu.host = ""; fingerprint = ""; expiration_date = 0.0 }
     in
     try%lwt
