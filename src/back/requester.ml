@@ -19,15 +19,13 @@ module Default : S = struct
     let new_tofu_entry =
       ref { Tofu.host = ""; fingerprint = ""; expiration_date = 0.0 }
     in
-
     try%lwt
       let config =
         let authenticator ?ip:_ ~host certs =
           let cert = List.hd certs in
-
           let entry =
-            match tofu_entry with
-            | None ->
+            Option.value
+              ~default:
                 {
                   Tofu.host = req.G.Request.host;
                   fingerprint =
@@ -36,25 +34,24 @@ module Default : S = struct
                   expiration_date =
                     Ptime.to_float_s @@ snd @@ X509.Certificate.validity cert;
                 }
-            | Some entry -> entry
+              tofu_entry
           in
-
           let validation =
             X509.Validation.trust_cert_fingerprint ~host
               ~time:(fun () -> Some (Ptime_clock.now ()))
               ~hash:`SHA256
               ~fingerprint:
-                (match tofu_entry with
-                | Some e -> Cstruct.of_string @@ e.fingerprint
-                | None -> Cstruct.of_string @@ entry.fingerprint)
+                (Cstruct.of_string
+                @@
+                match tofu_entry with
+                | None -> entry.fingerprint
+                | Some e -> e.fingerprint)
               certs
           in
 
           match validation with
           | Ok _ ->
-              (match tofu_entry with
-              | Some e -> new_tofu_entry := e
-              | None -> new_tofu_entry := entry);
+              new_tofu_entry := Option.value ~default:entry tofu_entry;
               validation
           | Error e -> (
               match e with
@@ -68,10 +65,9 @@ module Default : S = struct
                   Ok None
               | _ -> validation)
         in
-
         match req.G.Request.cert with
-        | Some certificates -> Tls.Config.client ~authenticator ~certificates ()
         | None -> Tls.Config.client ~authenticator ()
+        | Some certificates -> Tls.Config.client ~authenticator ~certificates ()
       in
       let* socket =
         Tls_lwt.connect_ext config (req.G.Request.host, req.G.Request.port)

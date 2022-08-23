@@ -20,7 +20,7 @@ let save (module CacheAcc : Common.Accessor.S) entries =
 
 let get_by_host (module CacheAcc : Common.Accessor.S) host =
   let* entries = get (module CacheAcc) in
-  List.find_opt (fun e -> String.equal e.host host) entries |> Lwt.return
+  Lwt.return @@ List.find_opt (fun e -> String.equal e.host host) entries
 
 let save_entry (module CacheAcc : Common.Accessor.S)
     { host; fingerprint; expiration_date } =
