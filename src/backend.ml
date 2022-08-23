@@ -103,7 +103,7 @@ module Make (Prompt : Prompt.S) (Requester : Requester.S) : S = struct
                      one?"
                 then
                   let* () =
-                    Tofu.save_entry Tofu.cache
+                    Tofu.save_entry
                       {
                         Tofu.host = req.host;
                         fingerprint =

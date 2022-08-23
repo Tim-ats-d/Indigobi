@@ -15,7 +15,7 @@ module Default : S = struct
   type socket = Tls_lwt.ic * Tls_lwt.oc
 
   let init req =
-    let* tofu_entry = Tofu.get_by_host Tofu.cache req.G.Request.host in
+    let* tofu_entry = Tofu.get_by_host req.G.Request.host in
     let new_tofu_entry =
       (* this variable should not be accessed outside `authenticator` and `Tofu.save_entry` *)
       ref { Tofu.host = ""; fingerprint = ""; expiration_date = 0.0 }
@@ -73,7 +73,7 @@ module Default : S = struct
       let* socket =
         Tls_lwt.connect_ext config (req.G.Request.host, req.G.Request.port)
       in
-      let* () = Tofu.save_entry Tofu.cache !new_tofu_entry in
+      let* () = Tofu.save_entry !new_tofu_entry in
       Lwt_result.ok @@ Lwt.return socket
     with
     | Tls_lwt.Tls_failure e -> Lwt_result.fail @@ `Tls e
