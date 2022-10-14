@@ -1,6 +1,6 @@
 type t = { status : Status.t; meta : string }
 
-let re = Str.regexp "\\([0-9][0-9]\\) \\(.*\\)\r\n"
+let re = Str.regexp "\\([0-9][0-9]\\) \\(.*\\)"
 
 let parse str =
   if Str.string_match re str 0 then

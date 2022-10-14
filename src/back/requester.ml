@@ -84,20 +84,7 @@ module Default : S = struct
 
   let fetch_header (ic, oc) req =
     let* () = Lwt_io.write oc req in
-    let buf = Buffer.create 4 in
-    let* chr = input_char (ic, oc) in
-    Buffer.add_char buf chr;
-    let* chr = input_char (ic, oc) in
-    Buffer.add_char buf chr;
-    let rec input_in () =
-      if String.equal Buffer.(sub buf (length buf - 2) 2) "\r\n" then
-        Lwt.return @@ Buffer.contents buf
-      else
-        let* chr = input_char (ic, oc) in
-        Buffer.add_char buf chr;
-        input_in ()
-    in
-    input_in ()
+    Lwt_io.read_line ic
 
   let parse_body socket =
     let buf = Buffer.create 512 in
