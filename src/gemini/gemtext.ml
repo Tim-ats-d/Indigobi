@@ -5,19 +5,22 @@ and line =
   | Link of { url : string; name : string option }
   | Preformat of preformat
   | Heading of [ `H1 | `H2 | `H3 ] * string
-  | Items of string
+  | ListItem of string
   | Quote of string
 
 and preformat = { alt : string option; text : string }
 
 module Regex = struct
   let spaces = Re.(rep (alt [ char ' '; char '\t' ]))
-  let line re = Re.compile Re.(seq [ re; spaces; group (rep1 any) ])
+
+  let line prefix =
+    Re.compile Re.(seq [ bol; prefix; spaces; group (rep1 any) ])
+
   let h1 = line (Re.char '#')
   let h2 = line (Re.str "##")
   let h3 = line (Re.str "###")
-  let quote = line (Re.char '>')
   let item = line (Re.str "* ")
+  let quote = Re.compile Re.(seq [ bol; Re.char '>'; group (rep1 any) ])
 
   let link =
     Re.compile
@@ -26,7 +29,7 @@ module Regex = struct
           [
             str "=>";
             spaces;
-            group (rep1 (diff print space));
+            group (rep1 (compl [ space ]));
             opt (seq [ spaces; group (rep1 any) ]);
           ])
 end
@@ -49,27 +52,29 @@ let parse text =
             let frgmt =
               if x = "" then Text ""
               else
-                match Re.exec_opt Regex.h1 x with
-                | Some grp -> Heading (`H1, Re.Group.get grp 1)
+                match Re.exec_opt Regex.h3 x with
+                | Some grp -> Heading (`H3, Re.Group.get grp 1)
                 | None -> (
                     match Re.exec_opt Regex.h2 x with
                     | Some grp -> Heading (`H2, Re.Group.get grp 1)
                     | None -> (
-                        match Re.exec_opt Regex.h3 x with
-                        | Some grp -> Heading (`H3, Re.Group.get grp 1)
+                        match Re.exec_opt Regex.h1 x with
+                        | Some grp -> Heading (`H1, Re.Group.get grp 1)
                         | None -> (
                             match Re.exec_opt Regex.item x with
-                            | Some grp -> Items (Re.Group.get grp 1)
+                            | Some grp -> ListItem (Re.Group.get grp 1)
                             | None -> (
                                 match Re.exec_opt Regex.quote x with
                                 | Some grp -> Quote (Re.Group.get grp 1)
                                 | None -> (
-                                    match Re.matches Regex.link x with
-                                    | [] -> Text x
-                                    | [ url ] -> Link { url; name = None }
-                                    | [ url; name ] ->
-                                        Link { url; name = Some name }
-                                    | _ -> assert false)))))
+                                    match Re.exec_opt Regex.link x with
+                                    | None -> Text x
+                                    | Some grp ->
+                                        let url, name =
+                                          ( Re.Group.get grp 1,
+                                            Re.Group.get_opt grp 2 )
+                                        in
+                                        Link { url; name })))))
             in
             loop (frgmt :: acc) is_preformat pf xs)
   in
