@@ -23,21 +23,13 @@
  (depends
   (dune
    (>= 3.0))
-  (lambda-term
-   (>= 3.3.0))
   (lwt
    (>= 5.6.0))
   (lwt_ppx
    (>= 2.1.0))
-  (lwt_ssl
-   (>= 1.1))
   (ppx_deriving
    (>= 5.2.1))
   (ppx_sexp_conv
    (>= "v0.15.1"))
-  (ppx_system
-   (>= 1.0))
-  (ssl
-   (>= 0.5.11))
   (ocaml
    (>= 4.13))))
