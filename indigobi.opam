@@ -11,8 +11,7 @@ depends: [
   "dune" {>= "2.9" & >= "3.0"}
   "lwt" {>= "5.6.0"}
   "lwt_ppx" {>= "2.1.0"}
-  "ppx_deriving" {>= "5.2.1"}
-  "ppx_sexp_conv" {>= "v0.15.1"}
+  "re" {>= "1.10.4"}
   "ocaml" {>= "4.13"}
   "odoc" {with-doc}
 ]
