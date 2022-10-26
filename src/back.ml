@@ -9,7 +9,7 @@ module type S = sig
     port:int ->
     cert:Tls.Config.own_cert option ->
     float ->
-    (Backend.Mime.t * string, [> Err.back | Status.err ]) Lwt_result.t
+    (Mime.t * string, [> Err.back | Status.err ]) Lwt_result.t
 
   val cert_from_file :
     string -> (Tls.Config.own_cert option, [> Common.Err.back ]) Lwt_result.t
