@@ -23,7 +23,8 @@ type back =
 type front =
   [ `CliErrBadTimeoutFormat | `CliErrUnknownSubCmd of string | `NoUrlProvided ]
 
-type t = [ front | back ]
+type err = [ front | back ]
+type 'a or_error = ('a, err) result
 
 let pp () = function
   | `GracefulFail -> "graceful fail: server returns 99 status code"

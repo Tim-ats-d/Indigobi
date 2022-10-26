@@ -25,8 +25,9 @@ type back =
 type front =
   [ `CliErrBadTimeoutFormat | `CliErrUnknownSubCmd of string | `NoUrlProvided ]
 
-type t = [ front | back ]
+type err = [ front | back ]
+type 'a or_error = ('a, err) result
 
 (** {2 API} *)
 
-val pp : unit -> t -> string
+val pp : unit -> err -> string

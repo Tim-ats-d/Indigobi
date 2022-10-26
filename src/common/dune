@@ -1,3 +1,3 @@
 (library
  (name common)
- (libraries tls tls.lwt))
+ (libraries notty notty.lwt re tls tls.lwt))
