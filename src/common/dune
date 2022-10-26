@@ -1,3 +1,6 @@
 (library
  (name common)
- (libraries notty notty.lwt re tls tls.lwt))
+ (preprocess
+  (pps lwt_ppx ppx_system))
+ (modules_without_implementation common)
+ (libraries notty notty.lwt re tls tls.lwt str))
