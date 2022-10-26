@@ -7,3 +7,4 @@ type t = Gemini | Text of string | Other of string
 (** {2 API} *)
 
 val parse : string -> t
+val pp : unit -> t -> string

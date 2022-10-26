@@ -3,7 +3,7 @@ module Attr = Notty.A
 module Img = Notty.I
 module Err = Err
 module Gemtext = Gemtext
+module Log = Log
 module Term = Notty_lwt.Term
 module Theme = Theme
 module Url = Url
-

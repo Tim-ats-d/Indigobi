@@ -15,3 +15,8 @@ let parse str =
     match String.split_on_char ';' str with
     | [ mtype ] -> guess mtype
     | _ -> Gemini
+
+let pp () = function
+  | Gemini -> "text/gemini"
+  | Text t -> "text/" ^ t
+  | Other o -> o
