@@ -11,7 +11,7 @@ let encode url =
     Buffer.add_string buf
       (match chr with
       | 'a' .. 'z' | 'A' .. 'Z' | '0' .. '9' -> Printf.sprintf "%c" chr
-      | _ -> Printf.sprintf "%%%02X" @@ Char.code chr);
+      | _ -> Char.code chr |> Printf.sprintf "%%%02X");
     buf
   in
   String.fold_left convert_char (Buffer.create 101) url |> Buffer.contents

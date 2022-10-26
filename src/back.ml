@@ -18,22 +18,45 @@ end
 module Make (Prompt : Frontend.Prompt.S) (Requester : Requester.S) : S = struct
   open Lwt.Syntax
 
+  let cert_re =
+    Re.compile
+      Re.(
+        seq
+          [
+            group
+              (seq
+                 [
+                   str "-----BEGIN CERTIFICATE-----";
+                   rep any;
+                   str "-----END CERTIFICATE-----";
+                 ]);
+            char ' ';
+            group
+              (seq
+                 [
+                   str "-----BEGIN PRIVATE KEY-----";
+                   rep any;
+                   str "-----END PRIVATE KEY-----";
+                 ]);
+          ])
+
   let cert_from_file cert =
     if cert = "" then Lwt_result.ok Lwt.return_none
     else
       try%lwt
         let* cert_str = Lwt_io.with_file ~mode:Input cert Lwt_io.read in
-        let cert_re =
-          Str.regexp
-            {|\(-----BEGIN CERTIFICATE-----.+-----END CERTIFICATE-----\) \(-----BEGIN PRIVATE KEY-----.+-----END PRIVATE KEY-----\)|}
-        in
+
         match
-          Str.replace_first cert_re "\\1" cert_str
+          Re.replace ~all:false cert_re
+            ~f:(fun grp -> Re.Group.get grp 1)
+            cert_str
           |> Cstruct.of_string |> X509.Certificate.decode_pem_multiple
         with
         | Ok certificate -> (
             match
-              Str.replace_first cert_re "\\2" cert_str
+              Re.replace ~all:false cert_re
+                ~f:(fun grp -> Re.Group.get grp 2)
+                cert_str
               |> Cstruct.of_string |> X509.Private_key.decode_pem
             with
             | Ok priv_key ->
@@ -59,9 +82,7 @@ module Make (Prompt : Frontend.Prompt.S) (Requester : Requester.S) : S = struct
                 let* input =
                   if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
                 in
-                Url.encode input
-                |> Request.attach_input req
-                |> request timeout
+                Url.encode input |> Request.attach_input req |> request timeout
             | `Success ->
                 let* body = Requester.parse_body socket in
                 let* () = Requester.close socket in
