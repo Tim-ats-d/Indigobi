@@ -17,11 +17,10 @@ module Make (Back : Back.S) (Printer : Frontend.Printer.S) : S = struct
   and update ({ Draw_ctx.mode; reload; _ } as ctx) =
     let* ctx =
       match mode with
-      | Browse { address; _ } when reload -> browse ctx address
-      | Browse _ -> Lwt.return ctx
-      | Error err ->
-          Draw_ctx.set_error err ctx |> Draw_ctx.reload false |> Lwt.return
+      | Browse { address; _ } ->
+          if reload then browse ctx address else Lwt.return ctx
     in
+
     Lwt.return (ctx, mk_status ctx </> mk_view ctx)
 
   and browse ctx address =
@@ -33,7 +32,7 @@ module Make (Back : Back.S) (Printer : Frontend.Printer.S) : S = struct
             ~cert:c 5.0
         with
         | Ok (mime, body) ->
-            Draw_ctx.set_text (Gemtext.parse body) address mime ctx
+            Draw_ctx.set_text (Gemtext.parse body) address (Some mime) ctx
             |> Draw_ctx.reload false |> Lwt.return
         | Error err -> Draw_ctx.set_error err ctx |> Lwt.return)
     | Error err -> Draw_ctx.set_error err ctx |> Lwt.return
@@ -49,20 +48,21 @@ module Make (Back : Back.S) (Printer : Frontend.Printer.S) : S = struct
 
   and mk_status { Draw_ctx.mode; offset; range; term; _ } =
     let address, mime =
-      match mode with
-      | Browse { address; mime } -> (address, mime)
-      | Error _ -> ("Error", Gemini)
+      match mode with Browse { address; mime } -> (address, mime)
     in
     let back = Attr.(fg black ++ bg white) in
+    let sep = Img.string back " | " in
     let mode = Format.sprintf "%a" Draw_ctx.pp_mode mode |> Img.string back in
     let addr = Img.string back address in
-    let mime = Format.sprintf "%a" Mime.pp mime |> Img.string back in
+    let mime =
+      Option.fold mime ~none:Img.empty ~some:(fun m ->
+          Format.sprintf "%a" Mime.pp m |> Img.string back <|> sep)
+    in
     let progress = Printf.sprintf "%i/%i" offset range |> Img.string back in
-    let sep = Img.string back " | " in
     let col, row = Term.size term in
     let bar = Img.uchar back (Uchar.of_char ' ') col 1 in
     let left = mode <|> sep <|> addr in
-    let right = mime <|> sep <|> progress in
+    let right = mime <|> progress in
     left
     </> Img.hpad (Img.width bar - Img.width right) 0 right
     </> bar
@@ -97,8 +97,7 @@ module Make (Back : Back.S) (Printer : Frontend.Printer.S) : S = struct
     let term = Term.create () in
     let address = try Sys.argv.(1) with Invalid_argument _ -> "" in
     let* ctx =
-      Draw_ctx.make ~term ~theme ~mode:(Draw_ctx.browse address (Other "Empty"))
-      |> refresh
+      Draw_ctx.make ~term ~theme ~mode:(Draw_ctx.browse address None) |> refresh
     in
     Lwt_stream.fold_s loop (Term.events term) ctx
 

@@ -10,9 +10,7 @@ type t = {
   reload : bool;
 }
 
-and mode =
-  | Browse of { address : string; mime : Mime.t }
-  | Error of [ Backend.Status.err | Err.err ]
+and mode = Browse of { address : string; mime : Mime.t option }
 
 let browse address mime = Browse { address; mime }
 
@@ -38,9 +36,9 @@ let set_error err ctx =
     | #Err.err as e -> ("Error", Format.sprintf "%a" Err.pp e)
   in
   let text = [ Gemtext.Heading (`H1, head); Text ""; Text body ] in
-  { ctx with text; mode = Error err; offset = 0; range = List.length text }
+  { ctx with text; offset = 0; range = List.length text }
 
-let pp_mode () = function Browse _ -> "BROWSE" | Error _ -> "ERROR"
+let pp_mode () = function Browse _ -> "BROWSE"
 
 let scroll t = function
   | `Up -> { t with offset = Int.max 0 (t.offset - 1) }
