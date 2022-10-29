@@ -80,8 +80,10 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
         let* () = Term.release term in
         Lwt.return ctx
     | `Resize _ -> refresh ctx
+    | `Mouse (`Press (`Scroll dir), _, _)
     | `Key (`Arrow ((`Up | `Down) as dir), []) ->
         Context.scroll ctx dir |> refresh
+    | `Key (`Enter, _) -> Context.scroll ctx `Down |> refresh
     | _ -> Lwt.return ctx
 
   let theme =
