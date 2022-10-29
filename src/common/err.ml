@@ -20,9 +20,7 @@ type back =
   | `Timeout
   | `UnknownHostOrServiceName ]
 
-type front =
-  [ `CliErrBadTimeoutFormat | `CliErrUnknownSubCmd of string | `NoUrlProvided ]
-
+type front = [ `BadTimeoutFormat ]
 type err = [ front | back ]
 type 'a or_error = ('a, err) result
 
@@ -38,15 +36,11 @@ let pp () = function
   | `MalformedServerResponse -> "mal formed server response"
   | `NotFound -> "not found"
   | `Timeout -> "timeout"
-  | `NoUrlProvided -> "no url is provided"
   | `UnknownHostOrServiceName -> "unknown host or service name"
-  | `CliErrBadTimeoutFormat -> "bad format for timeout"
-  | `CliErrUnknownSubCmd sub_cmd ->
-      Printf.sprintf "unknown sub command %S" sub_cmd
+  | `BadTimeoutFormat -> "bad format for timeout: a float is expected"
   | `InvalidClientCertificate reason ->
       Printf.sprintf "invalid client certificate: %S" reason
   | `FileNotFound file -> Printf.sprintf "file \"%s\" not found" file
-  | `SocketError error -> (
-      match error with
-      | `Tls tls_error -> raise @@ Tls_lwt.Tls_failure tls_error
-      | `NoAddress address -> Printf.sprintf "no address for %s" address)
+  | `SocketError (`Tls err) -> raise (Tls_lwt.Tls_failure err)
+  | `SocketError (`NoAddress address) ->
+      Printf.sprintf "no address for %s" address

@@ -1,5 +1,13 @@
+(** {1 Types} *)
+
 module type S = sig
   val main : unit -> unit
 end
 
-module Make : functor (Backend : Back.S) (Printer : Frontend.Printer.S) -> S
+(** {2 API} *)
+
+module Make : functor
+  (Backend : Back.S)
+  (ArgParser : Frontend.Cli.S)
+  (Printer : Frontend.Printer.S)
+  -> S

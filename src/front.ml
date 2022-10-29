@@ -5,22 +5,23 @@ module type S = sig
   val main : unit -> unit
 end
 
-module Make (Back : Back.S) (Printer : Frontend.Printer.S) : S = struct
+module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
+  S = struct
   open Lwt.Syntax
   open Notty.Infix
 
   let rec refresh ctx =
     let* ctx, img = update ctx in
-    let* () = Term.image ctx.Draw_ctx.term img in
+    let* () = Term.image ctx.Context.term img in
     Lwt.return ctx
 
-  and update ({ Draw_ctx.mode; reload; _ } as ctx) =
+  and update ({ Context.mode; reload; tab; _ } as ctx) =
     let* ctx =
-      match mode with
-      | Browse { address; _ } ->
+      match (mode, tab) with
+      | Browse, (Home, _) -> Context.set_home ctx.homepage ctx |> Lwt.return
+      | Browse, (Page { address }, _) ->
           if reload then browse ctx address else Lwt.return ctx
     in
-
     Lwt.return (ctx, mk_status ctx </> mk_view ctx)
 
   and browse ctx address =
@@ -29,46 +30,50 @@ module Make (Back : Back.S) (Printer : Frontend.Printer.S) : S = struct
     | Ok c -> (
         match%lwt
           Back.get ~url:(Url.to_string url) ~host:url.domain ~port:url.port
-            ~cert:c 5.0
+            ~cert:c ctx.args.timeout
         with
-        | Ok (mime, body) ->
-            Draw_ctx.set_text (Gemtext.parse body) address (Some mime) ctx
-            |> Draw_ctx.reload false |> Lwt.return
-        | Error err -> Draw_ctx.set_error err ctx |> Lwt.return)
-    | Error err -> Draw_ctx.set_error err ctx |> Lwt.return
+        | Ok (_, body) ->
+            Context.set_page (Gemtext (Gemtext.parse body)) address ctx
+            |> Context.reload false |> Lwt.return
+        | Error err -> Context.set_error err ctx |> Lwt.return)
+    | Error err -> Context.set_error err ctx |> Lwt.return
 
-  and mk_view { Draw_ctx.text; offset; range; theme; _ } =
-    List.fold_left
-      (fun (i, img) line ->
-        ( i + 1,
-          if offset <= i && i <= range then img <-> Printer.gemini theme line
-          else img ))
-      (0, Img.empty) text
-    |> snd
+  and mk_view { Context.document; offset; range; theme; _ } =
+    let print doc p =
+      List.fold_left
+        (fun (i, img) line ->
+          ( i + 1,
+            if offset <= i && i <= range then img <-> p theme line else img ))
+        (0, Img.empty) doc
+      |> snd
+    in
+    match document with
+    | Gemtext gt -> print gt Printer.gemini
+    | Text (txt, _mime) ->
+        print (String.split_on_char '\n' txt) (fun theme ->
+            Img.string theme.text)
 
-  and mk_status { Draw_ctx.mode; offset; range; term; _ } =
-    let address, mime =
-      match mode with Browse { address; mime } -> (address, mime)
+  and mk_status { Context.mode; offset; range; tab = address, mime; term; _ } =
+    let mode = Format.sprintf "%a" Context.pp_mode mode in
+    let address =
+      match address with Home -> "Home" | Page { address } -> address
     in
     let back = Attr.(fg black ++ bg white) in
     let sep = Img.string back " | " in
-    let mode = Format.sprintf "%a" Draw_ctx.pp_mode mode |> Img.string back in
+    let mode = mode |> Img.string back in
     let addr = Img.string back address in
-    let mime =
-      Option.fold mime ~none:Img.empty ~some:(fun m ->
-          Format.sprintf "%a" Mime.pp m |> Img.string back <|> sep)
-    in
+    let mime = Format.sprintf "%a" Mime.pp mime |> Img.string back in
     let progress = Printf.sprintf "%i/%i" offset range |> Img.string back in
     let col, row = Term.size term in
     let bar = Img.uchar back (Uchar.of_char ' ') col 1 in
     let left = mode <|> sep <|> addr in
-    let right = mime <|> progress in
+    let right = mime <|> sep <|> progress in
     left
     </> Img.hpad (Img.width bar - Img.width right) 0 right
     </> bar
     |> Img.vpad (row - 1) 0
 
-  let loop event ({ Draw_ctx.term; _ } as ctx) =
+  let loop event ({ Context.term; _ } as ctx) =
     match event with
     | `Key (`ASCII 'q', []) | `Key (`ASCII 'C', [ `Ctrl ]) | `Key (`Escape, [])
       ->
@@ -76,7 +81,7 @@ module Make (Back : Back.S) (Printer : Frontend.Printer.S) : S = struct
         Lwt.return ctx
     | `Resize _ -> refresh ctx
     | `Key (`Arrow ((`Up | `Down) as dir), []) ->
-        Draw_ctx.scroll ctx dir |> refresh
+        Context.scroll ctx dir |> refresh
     | _ -> Lwt.return ctx
 
   let theme =
@@ -93,13 +98,20 @@ module Make (Back : Back.S) (Printer : Frontend.Printer.S) : S = struct
         quote = fg (gray 12);
       }
 
-  let main_aux () =
-    let term = Term.create () in
-    let address = try Sys.argv.(1) with Invalid_argument _ -> "" in
-    let* ctx =
-      Draw_ctx.make ~term ~theme ~mode:(Draw_ctx.browse address None) |> refresh
-    in
-    Lwt_stream.fold_s loop (Term.events term) ctx
+  let homepage = Context.Gemtext [ Heading (`H1, "Home") ]
 
-  let main () = main_aux () |> Lwt_main.run |> ignore
+  let main () =
+    Lwt_main.run
+    @@
+    match ArgParser.parse () with
+    | Ok args ->
+        let term = Term.create () in
+        let tab =
+          Option.fold args.address ~none:Context.Home ~some:(fun address ->
+              Page { address })
+        in
+        let* ctx = Context.make ~term ~theme ~homepage ~tab ~args |> refresh in
+        let* _ = Lwt_stream.fold_s loop (Term.events term) ctx in
+        Lwt.return_unit
+    | Error err -> Format.sprintf "%a" Err.pp (err :> Err.err) |> Lwt_io.printl
 end

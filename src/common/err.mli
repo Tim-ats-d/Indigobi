@@ -1,6 +1,5 @@
-(** {1 Types} *)
-
 type status_code = [ `GracefulFail | `InvalidStatusCode of int ]
+(** {1 Types} *)
 
 type ssl_cert_error =
   [ `DomainNameNotPresent of string
@@ -22,9 +21,7 @@ type back =
   | `Timeout
   | `UnknownHostOrServiceName ]
 
-type front =
-  [ `CliErrBadTimeoutFormat | `CliErrUnknownSubCmd of string | `NoUrlProvided ]
-
+type front = [ `BadTimeoutFormat ]
 type err = [ front | back ]
 type 'a or_error = ('a, err) result
 
