@@ -9,6 +9,7 @@ type t = {
   theme : Theme.t;
   mode : mode;  (** Current mode *)
   tab : tab * Mime.t;
+  input : string;
   offset : int;  (** Scroll offset *)
   range : int;  (** Scroll range *)
   reload : bool;
@@ -16,7 +17,7 @@ type t = {
 }
 
 and document = Gemtext of Gemtext.t | Text of string * string
-and mode = Browse
+and mode = Browse | Input
 and tab = Home | Page of { address : string }
 
 val make :
@@ -29,9 +30,15 @@ val make :
 
 (** {2 API} *)
 
+val set_mode : mode -> t -> t
 val set_home : document -> t -> t
 val set_page : document -> string -> t -> t
-val set_error : [ Backend.Status.err | Err.err ] -> t -> t
+val set_error : [ Backend.Status.err | Err.err ] -> address:string -> t -> t
 val reload : bool -> t -> t
 val scroll : t -> [ `Down | `Up ] -> t
+val toggle : t -> mode -> default:mode -> t
+
+val delete_last : t -> t
+(** Remove the last character of current input. *)
+
 val pp_mode : unit -> mode -> string

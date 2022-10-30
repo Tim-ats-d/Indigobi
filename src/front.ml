@@ -10,6 +10,20 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
   open Lwt.Syntax
   open Notty.Infix
 
+  let browse ctx address =
+    let url = Url.parse address "" in
+    match%lwt Back.cert_from_file "" with
+    | Ok c -> (
+        match%lwt
+          Back.get ~url:(Url.to_string url) ~host:url.domain ~port:url.port
+            ~cert:c ctx.Context.args.timeout
+        with
+        | Ok (_, body) ->
+            Context.set_page (Gemtext (Gemtext.parse body)) address ctx
+            |> Context.reload false |> Lwt.return
+        | Error err -> Context.set_error err ~address ctx |> Lwt.return)
+    | Error err -> Context.set_error err ~address ctx |> Lwt.return
+
   let rec refresh ctx =
     let* ctx, img = update ctx in
     let* () = Term.image ctx.Context.term img in
@@ -21,24 +35,11 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
       | Browse, (Home, _) -> Context.set_home ctx.homepage ctx |> Lwt.return
       | Browse, (Page { address }, _) ->
           if reload then browse ctx address else Lwt.return ctx
+      | Input, _ -> Lwt.return ctx
     in
-    Lwt.return (ctx, mk_status ctx </> mk_view ctx)
+    Lwt.return (ctx, mk_status ctx </> mk_input ctx </> mk_doc ctx)
 
-  and browse ctx address =
-    let url = Url.parse address "" in
-    match%lwt Back.cert_from_file "" with
-    | Ok c -> (
-        match%lwt
-          Back.get ~url:(Url.to_string url) ~host:url.domain ~port:url.port
-            ~cert:c ctx.args.timeout
-        with
-        | Ok (_, body) ->
-            Context.set_page (Gemtext (Gemtext.parse body)) address ctx
-            |> Context.reload false |> Lwt.return
-        | Error err -> Context.set_error err ctx |> Lwt.return)
-    | Error err -> Context.set_error err ctx |> Lwt.return
-
-  and mk_view { Context.document; offset; range; theme; _ } =
+  and mk_doc { Context.document; offset; range; theme; _ } =
     let print doc p =
       List.fold_left
         (fun (i, img) line ->
@@ -52,6 +53,14 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
     | Text (txt, _mime) ->
         print (String.split_on_char '\n' txt) (fun theme ->
             Img.string theme.text)
+
+  and mk_input { Context.input; mode; term; _ } =
+    match mode with
+    | Input ->
+        let _, row = Term.size term in
+        let back = Attr.(fg black ++ bg white) in
+        Img.string back (":" ^ input) |> Img.vpad (row - 2) 0
+    | _ -> Img.empty
 
   and mk_status { Context.mode; offset; range; tab = address, mime; term; _ } =
     let mode = Format.sprintf "%a" Context.pp_mode mode in
@@ -73,17 +82,28 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
     </> bar
     |> Img.vpad (row - 1) 0
 
-  let loop event ({ Context.term; _ } as ctx) =
-    match event with
-    | `Key (`ASCII 'q', []) | `Key (`ASCII 'C', [ `Ctrl ]) | `Key (`Escape, [])
-      ->
+  let loop event ({ Context.mode; term; _ } as ctx) =
+    match (mode, event) with
+    | _, `Key (`ASCII ':', []) ->
+        Context.toggle ctx Input ~default:Browse |> refresh
+    | Input, `Key (`Backspace, []) -> Context.delete_last ctx |> refresh
+    | Input, `Key (`ASCII chr, []) ->
+        { ctx with input = ctx.input ^ String.make 1 chr } |> refresh
+    | Input, `Key (`Enter, []) ->
+        let* ctx = browse ctx ctx.input in
+        refresh ctx
+    | Input, `Key (`Escape, []) -> Context.set_mode Browse ctx |> refresh
+    | ( Browse,
+        ( `Key (`ASCII 'q', [])
+        | `Key (`ASCII 'C', [ `Ctrl ])
+        | `Key (`Escape, []) ) ) ->
         let* () = Term.release term in
         Lwt.return ctx
-    | `Resize _ -> refresh ctx
-    | `Mouse (`Press (`Scroll dir), _, _)
-    | `Key (`Arrow ((`Up | `Down) as dir), []) ->
+    | Browse, `Mouse (`Press (`Scroll dir), _, _)
+    | Browse, `Key (`Arrow ((`Up | `Down) as dir), []) ->
         Context.scroll ctx dir |> refresh
-    | `Key (`Enter, _) -> Context.scroll ctx `Down |> refresh
+    | Browse, `Key (`Enter, _) -> Context.scroll ctx `Down |> refresh
+    | _, `Resize _ -> refresh ctx
     | _ -> Lwt.return ctx
 
   let theme =
