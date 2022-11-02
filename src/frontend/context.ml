@@ -89,9 +89,11 @@ let scroll ctx = function
   | `Up -> { ctx with offset = Int.max 0 (ctx.offset - 1) }
   | `Down -> { ctx with offset = Int.min (ctx.range - 1) (ctx.offset + 1) }
 
-let delete_last ctx =
+let input_delete_last ctx =
   if String.length ctx.input = 0 then ctx
   else { ctx with input = String.sub ctx.input 0 (String.length ctx.input - 1) }
+
+let input_add ctx chr = { ctx with input = ctx.input ^ String.make 1 chr }
 
 let toggle ctx state ~default =
   {

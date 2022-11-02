@@ -87,9 +87,9 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
     match (mode, event) with
     | _, `Key (`ASCII ':', []) ->
         Context.toggle ctx Input ~default:Browse |> refresh
-    | Input, `Key (`Backspace, []) -> Context.delete_last ctx |> refresh
+    | Input, `Key (`Backspace, []) -> Context.input_delete_last ctx |> refresh
     | Input, `Key (`ASCII chr, []) ->
-        { ctx with input = ctx.input ^ String.make 1 chr } |> refresh
+        Context.input_add ctx chr |> refresh
     | Input, `Key (`Enter, []) ->
         Context.set_history
           (Zipper.push ctx.history (Page { address = ctx.input }))

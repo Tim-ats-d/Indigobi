@@ -40,7 +40,10 @@ val reload : bool -> t -> t
 val scroll : t -> [ `Down | `Up ] -> t
 val toggle : t -> mode -> default:mode -> t
 
-val delete_last : t -> t
-(** Remove the last character of current input. *)
+val input_delete_last : t -> t
+(** [input_delete_last ctx] removes the last character of [ctx.input]. *)
+
+val input_add : t -> char -> t
+(** [input_add ctx c] add [c] at the end of [ctx.input]. *)
 
 val pp_mode : unit -> mode -> string
