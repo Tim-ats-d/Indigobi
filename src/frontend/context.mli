@@ -13,6 +13,7 @@ type t = {
   offset : int;  (** Scroll offset *)
   range : int;  (** Scroll range *)
   reload : bool;
+  history : tab Zipper.t;  (** Page history *)
   args : Cli.t;  (** CLI arguments supplied *)
 }
 
@@ -31,6 +32,7 @@ val make :
 (** {2 API} *)
 
 val set_mode : mode -> t -> t
+val set_history : tab Zipper.t -> t -> t
 val set_home : document -> t -> t
 val set_page : document -> string -> t -> t
 val set_error : [ Backend.Status.err | Err.err ] -> address:string -> t -> t

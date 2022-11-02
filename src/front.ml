@@ -10,32 +10,33 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
   open Lwt.Syntax
   open Notty.Infix
 
-  let browse ctx address =
-    let url = Url.parse address "" in
-    match%lwt Back.cert_from_file "" with
-    | Ok c -> (
-        match%lwt
-          Back.get ~url:(Url.to_string url) ~host:url.domain ~port:url.port
-            ~cert:c ctx.Context.args.timeout
-        with
-        | Ok (_, body) ->
-            Context.set_page (Gemtext (Gemtext.parse body)) address ctx
-            |> Context.reload false |> Lwt.return
+  let browse ctx =
+    match ctx.Context.history.present with
+    | Home -> Context.set_home ctx.homepage ctx |> Lwt.return
+    | Page { address } -> (
+        let url = Url.parse address "" in
+        match%lwt Back.cert_from_file "" with
+        | Ok c -> (
+            match%lwt
+              Back.get ~url:(Url.to_string url) ~host:url.domain ~port:url.port
+                ~cert:c ctx.Context.args.timeout
+            with
+            | Ok (_, body) ->
+                Context.set_page (Gemtext (Gemtext.parse body)) address ctx
+                |> Context.reload false |> Lwt.return
+            | Error err -> Context.set_error err ~address ctx |> Lwt.return)
         | Error err -> Context.set_error err ~address ctx |> Lwt.return)
-    | Error err -> Context.set_error err ~address ctx |> Lwt.return
 
   let rec refresh ctx =
     let* ctx, img = update ctx in
     let* () = Term.image ctx.Context.term img in
     Lwt.return ctx
 
-  and update ({ Context.mode; reload; tab; _ } as ctx) =
+  and update ({ Context.mode; reload; _ } as ctx) =
     let* ctx =
-      match (mode, tab) with
-      | Browse, (Home, _) -> Context.set_home ctx.homepage ctx |> Lwt.return
-      | Browse, (Page { address }, _) ->
-          if reload then browse ctx address else Lwt.return ctx
-      | Input, _ -> Lwt.return ctx
+      match mode with
+      | Browse -> if reload then browse ctx else Lwt.return ctx
+      | Input -> Lwt.return ctx
     in
     Lwt.return (ctx, mk_status ctx </> mk_input ctx </> mk_doc ctx)
 
@@ -90,8 +91,10 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
     | Input, `Key (`ASCII chr, []) ->
         { ctx with input = ctx.input ^ String.make 1 chr } |> refresh
     | Input, `Key (`Enter, []) ->
-        let* ctx = browse ctx ctx.input in
-        refresh ctx
+        Context.set_history
+          (Zipper.push ctx.history (Page { address = ctx.input }))
+          ctx
+        |> Context.set_mode Browse |> Context.reload true |> refresh
     | Input, `Key (`Escape, []) -> Context.set_mode Browse ctx |> refresh
     | ( Browse,
         ( `Key (`ASCII 'q', [])
@@ -102,6 +105,14 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
     | Browse, `Mouse (`Press (`Scroll dir), _, _)
     | Browse, `Key (`Arrow ((`Up | `Down) as dir), []) ->
         Context.scroll ctx dir |> refresh
+    | Browse, `Key (`Arrow ((`Left | `Right) as dir), [ `Meta ]) ->
+        let f =
+          match dir with `Left -> Zipper.backward | `Right -> Zipper.forward
+        in
+        let hist =
+          match f ctx.history with None -> ctx.history | Some h -> h
+        in
+        Context.set_history hist ctx |> Context.reload true |> refresh
     | Browse, `Key (`Enter, _) -> Context.scroll ctx `Down |> refresh
     | _, `Resize _ -> refresh ctx
     | _ -> Lwt.return ctx

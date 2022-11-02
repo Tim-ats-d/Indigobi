@@ -11,6 +11,7 @@ type t = {
   offset : int;
   range : int;
   reload : bool;
+  history : tab Zipper.t;
   args : Cli.t;
 }
 
@@ -38,10 +39,12 @@ let make ~term ~theme ~homepage ~tab ~args =
     input = (match tab with Home -> "" | Page { address } -> address);
     range = 0;
     reload = true;
+    history = Zipper.make tab;
     args;
   }
 
 let set_mode mode ctx = { ctx with mode }
+let set_history history ctx = { ctx with history }
 
 let set_home document ctx =
   {
