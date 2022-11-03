@@ -14,13 +14,10 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
     match ctx.Context.history.present with
     | Home -> Context.set_home ctx.homepage ctx |> Lwt.return
     | Page { address } -> (
-        let url = Url.parse address "" in
+        let uri = Uri.of_string @@ "//" ^ address in
         match%lwt Back.cert_from_file "" with
         | Ok c -> (
-            match%lwt
-              Back.get ~url:(Url.to_string url) ~host:url.domain ~port:url.port
-                ~cert:c ctx.Context.args.timeout
-            with
+            match%lwt Back.get ~uri ~cert:c ctx.Context.args.timeout with
             | Ok (_, body) ->
                 Context.set_page (Gemtext (Gemtext.parse body)) address ctx
                 |> Context.reload false |> Lwt.return
@@ -88,8 +85,7 @@ module Make (Back : Back.S) (ArgParser : Cli.S) (Printer : Frontend.Printer.S) :
     | _, `Key (`ASCII ':', []) ->
         Context.toggle ctx Input ~default:Browse |> refresh
     | Input, `Key (`Backspace, []) -> Context.input_delete_last ctx |> refresh
-    | Input, `Key (`ASCII chr, []) ->
-        Context.input_add ctx chr |> refresh
+    | Input, `Key (`ASCII chr, []) -> Context.input_add ctx chr |> refresh
     | Input, `Key (`Enter, []) ->
         Context.set_history
           (Zipper.push ctx.history (Page { address = ctx.input }))

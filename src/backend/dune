@@ -2,4 +2,4 @@
  (name backend)
  (preprocess
   (pps lwt_ppx ppx_sexp_conv ppx_system))
- (libraries common))
+ (libraries common uri))

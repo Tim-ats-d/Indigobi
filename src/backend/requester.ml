@@ -13,7 +13,12 @@ module Default : S = struct
   type socket = Tls_lwt.ic * Tls_lwt.oc
 
   let init req =
-    let* tofu_entry = Tofu.get_by_host req.Request.host in
+    let req_host =
+      match Uri.host req.Request.uri with None -> failwith "wtf" | Some h -> h
+    in
+    let req_port = Option.value (Uri.port req.Request.uri) ~default:1965 in
+
+    let* tofu_entry = Tofu.get_by_host req_host in
     let new_tofu_entry =
       (* This variable should not be accessed outside `authenticator` and `Tofu.save_entry` *)
       ref { Tofu.host = ""; fingerprint = ""; expiration_date = 0.0 }
@@ -26,7 +31,7 @@ module Default : S = struct
             Option.value
               ~default:
                 {
-                  Tofu.host = req.host;
+                  Tofu.host = req_host;
                   fingerprint =
                     X509.Certificate.fingerprint `SHA256 cert
                     |> Cstruct.to_string;
@@ -64,12 +69,12 @@ module Default : S = struct
         | None -> Tls.Config.client ~authenticator ()
         | Some certificates -> Tls.Config.client ~authenticator ~certificates ()
       in
-      let* socket = Tls_lwt.connect_ext config (req.host, req.port) in
+      let* socket = Tls_lwt.connect_ext config (req_host, req_port) in
       let* () = Tofu.save_entry !new_tofu_entry in
       Lwt_result.return socket
     with
     | Tls_lwt.Tls_failure e -> Lwt_result.fail @@ `Tls e
-    | Invalid_argument _ -> Lwt_result.fail @@ `NoAddress req.host
+    | Invalid_argument _ -> Lwt_result.fail @@ `NoAddress req_host
 
   let close (ic, oc) = Lwt.join [ Lwt_io.close ic; Lwt_io.close oc ]
   let input_char (ic, _) = Lwt_io.read_char ic

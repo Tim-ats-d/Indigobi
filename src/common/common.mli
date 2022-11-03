@@ -7,5 +7,4 @@ module Mime = Mime
 module Log = Log
 module Term = Notty_lwt.Term
 module Theme = Theme
-module Url = Url
 module Zipper = Zipper

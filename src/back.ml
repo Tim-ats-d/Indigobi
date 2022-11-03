@@ -4,9 +4,7 @@ open Backend
 module type S = sig
   val get :
     ?bypass:Request.bypass ->
-    url:string ->
-    host:string ->
-    port:int ->
+    uri:Uri.t ->
     cert:Tls.Config.own_cert option ->
     float ->
     (Mime.t * string, [> Err.back | Status.err ]) Lwt_result.t
@@ -82,15 +80,15 @@ module Make (Prompt : Frontend.Prompt.S) (Requester : Requester.S) : S = struct
                 let* input =
                   if s then Prompt.prompt_sensitive meta else Prompt.prompt meta
                 in
-                Url.encode input |> Request.attach_input req |> request timeout
+                Uri.pct_encode input |> Request.attach_input req
+                |> request timeout
             | `Success ->
                 let* body = Requester.parse_body socket in
                 let* () = Requester.close socket in
                 Lwt_result.ok @@ Lwt.return (Mime.parse meta, body)
             | `Redirect (meta, _) ->
-                get ~bypass:req.bypass
-                  ~url:Url.(to_string @@ parse meta req.host)
-                  ~host:req.host ~port:req.port ~cert:req.cert timeout
+                get ~bypass:req.bypass ~uri:(Uri.of_string meta) ~cert:req.cert
+                  timeout
             | #Status.err as err -> Lwt_result.fail err))
     | Error err -> (
         match err with
@@ -101,20 +99,22 @@ module Make (Prompt : Frontend.Prompt.S) (Requester : Requester.S) : S = struct
                   Prompt.prompt_bool
                   @@ Printf.sprintf
                        "Domain %s not present in certificate, proceed anyway?"
-                       req.host
+                  @@ Option.get
+                  @@ Uri.host req.uri (* FIXME *)
                 then
                   get
                     ~bypass:{ req.bypass with host = true }
-                    ~url:req.uri ~host:req.host ~port:req.port ~cert:req.cert
-                    timeout
-                else Lwt_result.fail @@ `DomainNameNotPresent req.host
+                    ~uri:req.uri ~cert:req.cert timeout
+                else
+                  Lwt_result.fail
+                  @@ `DomainNameNotPresent
+                       (Option.get @@ Uri.host req.uri (* FIXME *))
             | `LeafCertificateExpired _ ->
                 if%lwt Prompt.prompt_bool "Expired certificate, proceed anyway?"
                 then
                   get
                     ~bypass:{ req.bypass with expiration = true }
-                    ~url:req.uri ~host:req.host ~port:req.port ~cert:req.cert
-                    timeout
+                    ~uri:req.uri ~cert:req.cert timeout
                 else Lwt_result.fail `ExpiredCertificate
             | `InvalidFingerprint (cert, _, _) ->
                 if%lwt
@@ -125,7 +125,7 @@ module Make (Prompt : Frontend.Prompt.S) (Requester : Requester.S) : S = struct
                   let* () =
                     Tofu.save_entry
                       {
-                        Tofu.host = req.host;
+                        Tofu.host = Option.get @@ Uri.host req.uri (* FIXME *);
                         fingerprint =
                           Cstruct.to_string
                           @@ X509.Certificate.fingerprint `SHA256 cert;
@@ -134,20 +134,18 @@ module Make (Prompt : Frontend.Prompt.S) (Requester : Requester.S) : S = struct
                           @@ X509.Certificate.validity cert;
                       }
                   in
-                  get ~bypass:req.bypass ~url:req.uri ~host:req.host
-                    ~port:req.port ~cert:req.cert timeout
+                  get ~bypass:req.bypass ~uri:req.uri ~cert:req.cert timeout
                 else
                   if%lwt Prompt.prompt_bool "Proceed anyway?" then
                     get
                       ~bypass:{ req.bypass with fingerprint = true }
-                      ~url:req.uri ~host:req.host ~port:req.port ~cert:req.cert
-                      timeout
+                      ~uri:req.uri ~cert:req.cert timeout
                   else Lwt_result.fail `UntrustedCertificate
             | _ -> Lwt_result.fail @@ `SocketError err)
         | _ -> Lwt_result.fail @@ `SocketError err)
 
-  and get ?(bypass = Request.default_bypass) ~url ~host ~port ~cert timeout =
-    match Request.create url ~host ~port ~cert ~bypass with
+  and get ?(bypass = Request.default_bypass) ~uri ~cert timeout =
+    match Request.create uri ~cert ~bypass with
     | None -> Lwt_result.fail `MalformedLink
     | Some r -> request timeout r
 end

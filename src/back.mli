@@ -4,9 +4,7 @@ open Backend
 module type S = sig
   val get :
     ?bypass:Request.bypass ->
-    url:string ->
-    host:string ->
-    port:int ->
+    uri:Uri.t ->
     cert:Tls.Config.own_cert option ->
     float ->
     (Mime.t * string, [> Err.back | Status.err ]) Lwt_result.t

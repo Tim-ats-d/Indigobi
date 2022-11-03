@@ -2,4 +2,4 @@
  (name indigobi)
  (preprocess
   (pps lwt_ppx))
- (libraries backend common frontend notty notty.lwt lwt lwt.unix re))
+ (libraries backend common frontend notty notty.lwt lwt lwt.unix re uri))
