@@ -1,17 +1,27 @@
+type bypass = {
+  host : bool;
+  expiration : bool;
+  empty : bool;
+  fingerprint : bool;
+}
+
 type t = {
   base_url : string;
   uri : string;
-  addr : Unix.addr_info;
   host : string;
   port : int;
-  cert : string;
+  cert : Tls.Config.own_cert option;
+  bypass : bypass;
 }
 
-let create ~addr ~host ~port ~cert url =
+let default_bypass =
+  { host = false; expiration = false; empty = false; fingerprint = false }
+
+let create ~bypass ~host ~port ~cert url =
   if Bytes.(length @@ of_string url) > 1024 then None
   else
     let uri = url ^ "\r\n" in
-    Some { base_url = url; uri; addr; host; port; cert }
+    Some { base_url = url; uri; host; port; cert; bypass }
 
 let attach_input t input =
   { t with uri = Printf.sprintf "%s?%s\r\n" t.base_url input }

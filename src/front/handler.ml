@@ -8,7 +8,7 @@ module type S = sig
     unit Lwt.t
 end
 
-module Make (Printer : Printer.S) : S = struct
+module Make (Printer : Printer.S) (ExternalHandler : ExtHandler.S) : S = struct
   open Lwt.Syntax
 
   let with_term ic f =
@@ -28,20 +28,7 @@ module Make (Printer : Printer.S) : S = struct
     in
     Lwt_list.iter_s print_line lines
 
-  let handle_other body ~mime =
-    let* fname, outc =
-      Lwt_io.open_temp_file ~prefix:"indigobi_" ~suffix:("." ^ mime) ()
-    in
-    let* () = Lwt_io.write outc body in
-    let launch_app =
-      [|
-        [%system { darwin = "open"; default = "xdg-open"; win32 = "start" }];
-        fname;
-      |]
-    in
-    let* _ = Lwt_process.exec ~stderr:`Close ("", launch_app) in
-    let* () = Lwt_io.close outc in
-    Lwt.return_unit
+  let handle_other = ExternalHandler.handle
 
   let handle_err err =
     let msg =

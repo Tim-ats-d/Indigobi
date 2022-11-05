@@ -13,7 +13,7 @@ module Make (Printer : Printer.S) = struct
     let* () = LTerm.flush term in
     let* user_input = Lwt_io.(read_line stdin) in
     let* () = LTerm.clear_line_prev term in
-    Lwt.return @@ Lib.Url.encode user_input
+    Lwt.return user_input
 
   class hidden_read ~prompt term =
     object (self)
@@ -33,7 +33,7 @@ module Make (Printer : Printer.S) = struct
     in
     let* () = LTerm.flush term in
     let* () = LTerm.clear_line_prev term in
-    Zed_string.to_utf8 input |> Lib.Url.encode |> Lwt.return
+    Lwt.return @@ Zed_string.to_utf8 input
 
   let prompt_bool meta =
     let rec run term =
